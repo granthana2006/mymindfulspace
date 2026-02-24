@@ -18,7 +18,7 @@ const EntryDetail = ({ entry, onBack }: EntryDetailProps) => {
         Back to journal
       </button>
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)] md:p-8">
+      <div className="rounded-xl border border-border/50 p-6 shadow-[var(--shadow-dreamy)] md:p-8" style={{ background: "var(--gradient-glass)", backdropFilter: "blur(10px)" }}>
         <div className="mb-4 flex items-center gap-3">
           <span className="text-3xl">{moodEmojis[entry.mood]}</span>
           <div>

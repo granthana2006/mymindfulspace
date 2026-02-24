@@ -12,8 +12,8 @@ interface JournalEntryCardProps {
 const JournalEntryCard = ({ entry, index, onDelete, onClick }: JournalEntryCardProps) => {
   return (
     <div
-      className="group cursor-pointer rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-glow)] animate-slide-up"
-      style={{ animationDelay: `${index * 80}ms` }}
+      className="group cursor-pointer rounded-xl border border-border/50 p-5 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-dreamy)] animate-slide-up"
+      style={{ animationDelay: `${index * 80}ms`, background: "var(--gradient-glass)", backdropFilter: "blur(10px)" }}
       onClick={() => onClick(entry)}
     >
       <div className="flex items-start justify-between">
