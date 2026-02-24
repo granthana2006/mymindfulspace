@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export type Mood = "peaceful" | "happy" | "reflective" | "grateful" | "melancholy" | "energetic";
 
 export interface JournalEntry {
@@ -5,11 +7,9 @@ export interface JournalEntry {
   title: string;
   content: string;
   mood: Mood;
-  date: string; // ISO string
-  createdAt: string;
+  date: string;
+  created_at: string;
 }
-
-const STORAGE_KEY = "journal-entries";
 
 export const moodEmojis: Record<Mood, string> = {
   peaceful: "🌊",
@@ -29,30 +29,44 @@ export const moodLabels: Record<Mood, string> = {
   energetic: "Energetic",
 };
 
-export function getEntries(): JournalEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
+export async function getEntries(): Promise<JournalEntry[]> {
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("id, title, content, mood, date, created_at")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching entries:", error);
     return [];
   }
+  return (data || []) as JournalEntry[];
 }
 
-export function saveEntry(entry: Omit<JournalEntry, "id" | "createdAt">): JournalEntry {
-  const entries = getEntries();
-  const newEntry: JournalEntry = {
-    ...entry,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  entries.unshift(newEntry);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  return newEntry;
+export async function saveEntry(entry: { title: string; content: string; mood: Mood; date: string }): Promise<JournalEntry | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .insert({
+      user_id: user.id,
+      title: entry.title,
+      content: entry.content,
+      mood: entry.mood,
+      date: entry.date,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error saving entry:", error);
+    return null;
+  }
+  return data as JournalEntry;
 }
 
-export function deleteEntry(id: string): void {
-  const entries = getEntries().filter((e) => e.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+export async function deleteEntry(id: string): Promise<void> {
+  const { error } = await supabase.from("journal_entries").delete().eq("id", id);
+  if (error) console.error("Error deleting entry:", error);
 }
 
 export function getGreeting(): string {
@@ -64,19 +78,18 @@ export function getGreeting(): string {
   return "Good night";
 }
 
-const quotes = [
-  "The quieter you become, the more you can hear.",
-  "In the middle of difficulty lies opportunity.",
-  "Write it on your heart that every day is the best day in the year.",
-  "Be yourself; everyone else is already taken.",
-  "The only way to do great work is to love what you do.",
-  "Stars can't shine without darkness.",
-  "Breathe in peace, breathe out stress.",
-  "Today is a beautiful day to be alive.",
-  "Let your thoughts flow like water.",
-  "Every sunset brings the promise of a new dawn.",
-];
-
 export function getRandomQuote(): string {
+  const quotes = [
+    "The quieter you become, the more you can hear.",
+    "In the middle of difficulty lies opportunity.",
+    "Write it on your heart that every day is the best day in the year.",
+    "Be yourself; everyone else is already taken.",
+    "The only way to do great work is to love what you do.",
+    "Stars can't shine without darkness.",
+    "Breathe in peace, breathe out stress.",
+    "Today is a beautiful day to be alive.",
+    "Let your thoughts flow like water.",
+    "Every sunset brings the promise of a new dawn.",
+  ];
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
