@@ -89,6 +89,51 @@ export type Database = {
         }
         Relationships: []
       }
+      movies: {
+        Row: {
+          created_at: string
+          genre: string
+          id: string
+          poster_url: string | null
+          rating: number | null
+          review: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+          year: string | null
+        }
+        Insert: {
+          created_at?: string
+          genre?: string
+          id?: string
+          poster_url?: string | null
+          rating?: number | null
+          review?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          year?: string | null
+        }
+        Update: {
+          created_at?: string
+          genre?: string
+          id?: string
+          poster_url?: string | null
+          rating?: number | null
+          review?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          year?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
