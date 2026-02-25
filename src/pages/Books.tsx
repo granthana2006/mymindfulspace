@@ -89,7 +89,7 @@ const Books = () => {
       {/* Library wallpaper background */}
       <div className="fixed inset-0 -z-10">
         <img src={libraryWallpaper} alt="" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-background/40 dark:bg-background/80 backdrop-blur-[2px] dark:backdrop-blur-sm" />
       </div>
 
       <div className="space-y-5">
