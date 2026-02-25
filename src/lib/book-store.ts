@@ -1,0 +1,68 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export interface Book {
+  id: string;
+  user_id: string;
+  title: string;
+  author: string;
+  genre: string;
+  status: "tbr" | "reading" | "read";
+  rating: number | null;
+  description: string;
+  photo_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const GENRES = [
+  "All",
+  "Fiction",
+  "Non-Fiction",
+  "Thriller",
+  "Romance",
+  "Fantasy",
+  "Sci-Fi",
+  "Mystery",
+  "Biography",
+  "Self-Help",
+  "Horror",
+  "Historical",
+  "Poetry",
+  "Other",
+] as const;
+
+export async function getBooks(userId: string): Promise<Book[]> {
+  const { data, error } = await supabase
+    .from("books")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as unknown as Book[]) ?? [];
+}
+
+export async function createBook(book: Omit<Book, "id" | "created_at" | "updated_at">): Promise<Book> {
+  const { data, error } = await supabase.from("books").insert(book).select().single();
+  if (error) throw error;
+  return data as unknown as Book;
+}
+
+export async function updateBook(id: string, updates: Partial<Book>): Promise<Book> {
+  const { data, error } = await supabase.from("books").update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data as unknown as Book;
+}
+
+export async function deleteBook(id: string): Promise<void> {
+  const { error } = await supabase.from("books").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function uploadBookPhoto(userId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop();
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("book-photos").upload(path, file);
+  if (error) throw error;
+  const { data } = supabase.storage.from("book-photos").getPublicUrl(path);
+  return data.publicUrl;
+}

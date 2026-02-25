@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      books: {
+        Row: {
+          author: string
+          created_at: string
+          description: string | null
+          genre: string
+          id: string
+          photo_url: string | null
+          rating: number | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author?: string
+          created_at?: string
+          description?: string | null
+          genre?: string
+          id?: string
+          photo_url?: string | null
+          rating?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          description?: string | null
+          genre?: string
+          id?: string
+          photo_url?: string | null
+          rating?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           content: string
