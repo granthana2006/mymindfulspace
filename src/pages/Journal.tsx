@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, BookOpen, BarChart2 } from "lucide-react";
+import { Plus, BookOpen, BarChart2, CalendarDays } from "lucide-react";
 import { getEntries, deleteEntry, JournalEntry } from "@/lib/journal-store";
 import JournalEntryCard from "@/components/JournalEntryCard";
 import NewEntryForm from "@/components/NewEntryForm";
 import EntryDetail from "@/components/EntryDetail";
 import MoodChart from "@/components/MoodChart";
 import PositiveQuote from "@/components/PositiveQuote";
+import JournalCalendar from "@/components/JournalCalendar";
 
-type View = "list" | "new" | "detail" | "chart";
+type View = "list" | "new" | "detail" | "chart" | "calendar";
 
 const Journal = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -43,7 +44,6 @@ const Journal = () => {
         <p className="text-muted-foreground">Capture your thoughts, moods & reflections</p>
       </div>
 
-      {/* Positive quote */}
       <PositiveQuote />
 
       {view === "new" && (
@@ -59,20 +59,19 @@ const Journal = () => {
       {view === "detail" && selectedEntry && (
         <EntryDetail
           entry={selectedEntry}
-          onBack={() => {
-            setSelectedEntry(null);
-            setView("list");
-          }}
+          onBack={() => { setSelectedEntry(null); setView("list"); }}
         />
       )}
 
       {view === "chart" && (
         <div className="space-y-4">
-          <button onClick={() => setView("list")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            ← Back to journal
-          </button>
+          <button onClick={() => setView("list")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Back to journal</button>
           <MoodChart entries={entries.map((e) => ({ date: e.date, mood: e.mood }))} />
         </div>
+      )}
+
+      {view === "calendar" && (
+        <JournalCalendar entries={entries} onBack={() => setView("list")} />
       )}
 
       {view === "list" && (
@@ -81,11 +80,16 @@ const Journal = () => {
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
               <h2 className="font-semibold text-foreground">Your Entries</h2>
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
-                {entries.length}
-              </span>
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{entries.length}</span>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setView("calendar")}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <CalendarDays className="h-4 w-4" />
+                <span className="hidden sm:inline">Calendar</span>
+              </button>
               <button
                 onClick={() => setView("chart")}
                 className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"

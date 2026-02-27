@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      assignments: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          grade: string | null
+          id: string
+          priority: string
+          status: string
+          subject: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          grade?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          subject?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          grade?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          subject?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       books: {
         Row: {
           author: string
@@ -56,6 +98,126 @@ export type Database = {
         }
         Relationships: []
       }
+      class_schedule: {
+        Row: {
+          color: string | null
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          location: string | null
+          professor: string | null
+          start_time: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          location?: string | null
+          professor?: string | null
+          start_time: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          location?: string | null
+          professor?: string | null
+          start_time?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exams: {
+        Row: {
+          created_at: string
+          exam_date: string
+          exam_time: string | null
+          exam_type: string
+          id: string
+          location: string | null
+          max_score: number | null
+          notes: string | null
+          score: number | null
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exam_date: string
+          exam_time?: string | null
+          exam_type?: string
+          id?: string
+          location?: string | null
+          max_score?: number | null
+          notes?: string | null
+          score?: number | null
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exam_date?: string
+          exam_time?: string | null
+          exam_type?: string
+          id?: string
+          location?: string | null
+          max_score?: number | null
+          notes?: string | null
+          score?: number | null
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gpa_records: {
+        Row: {
+          created_at: string
+          credits: number
+          grade_point: number
+          id: string
+          semester: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          grade_point?: number
+          id?: string
+          semester: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          grade_point?: number
+          id?: string
+          semester?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           content: string
@@ -63,6 +225,7 @@ export type Database = {
           date: string
           id: string
           mood: string
+          photo_url: string | null
           title: string
           updated_at: string
           user_id: string
@@ -73,6 +236,7 @@ export type Database = {
           date?: string
           id?: string
           mood: string
+          photo_url?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -83,6 +247,7 @@ export type Database = {
           date?: string
           id?: string
           mood?: string
+          photo_url?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -159,6 +324,39 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      study_notes: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          subject: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          subject: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          subject?: string
+          tags?: string[] | null
+          title?: string
           updated_at?: string
           user_id?: string
         }

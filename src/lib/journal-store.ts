@@ -8,6 +8,7 @@ export interface JournalEntry {
   content: string;
   mood: Mood;
   date: string;
+  photo_url: string;
   created_at: string;
 }
 
@@ -32,7 +33,7 @@ export const moodLabels: Record<Mood, string> = {
 export async function getEntries(): Promise<JournalEntry[]> {
   const { data, error } = await supabase
     .from("journal_entries")
-    .select("id, title, content, mood, date, created_at")
+    .select("id, title, content, mood, date, photo_url, created_at")
     .order("created_at", { ascending: false });
   if (error) {
     console.error("Error fetching entries:", error);
@@ -41,7 +42,7 @@ export async function getEntries(): Promise<JournalEntry[]> {
   return (data || []) as JournalEntry[];
 }
 
-export async function saveEntry(entry: { title: string; content: string; mood: Mood; date: string }): Promise<JournalEntry | null> {
+export async function saveEntry(entry: { title: string; content: string; mood: Mood; date: string; photo_url?: string }): Promise<JournalEntry | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
@@ -53,6 +54,7 @@ export async function saveEntry(entry: { title: string; content: string; mood: M
       content: entry.content,
       mood: entry.mood,
       date: entry.date,
+      photo_url: entry.photo_url || "",
     })
     .select()
     .single();
@@ -62,6 +64,29 @@ export async function saveEntry(entry: { title: string; content: string; mood: M
     return null;
   }
   return data as JournalEntry;
+}
+
+export async function uploadJournalPhoto(file: File): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const ext = file.name.split(".").pop();
+  const path = `${user.id}/${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("journal-photos")
+    .upload(path, file, { upsert: true });
+
+  if (error) {
+    console.error("Error uploading photo:", error);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("journal-photos")
+    .getPublicUrl(path);
+
+  return urlData.publicUrl;
 }
 
 export async function deleteEntry(id: string): Promise<void> {
@@ -90,6 +115,22 @@ export function getRandomQuote(): string {
     "Today is a beautiful day to be alive.",
     "Let your thoughts flow like water.",
     "Every sunset brings the promise of a new dawn.",
+  ];
+  return quotes[Math.floor(Math.random() * quotes.length)];
+}
+
+export function getHappySaveQuote(): string {
+  const quotes = [
+    "Beautiful entry! 🌟 Your thoughts are safe with us.",
+    "Saved! ✨ Thank you for sharing your heart today.",
+    "What a lovely reflection! 📝 Keep shining.",
+    "Entry saved! 🌈 Every word matters.",
+    "Captured! 💫 This moment is now a beautiful memory.",
+    "Beautifully written! 🦋 Your journal grows richer.",
+    "Saved with love! 💖 You're doing something wonderful for yourself.",
+    "Another beautiful page in your story! 📖",
+    "Your words have power! ⚡ Entry saved.",
+    "This is growth! 🌱 Keep journaling, keep blooming.",
   ];
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
