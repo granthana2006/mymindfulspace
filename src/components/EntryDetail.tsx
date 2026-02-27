@@ -31,6 +31,12 @@ const EntryDetail = ({ entry, onBack }: EntryDetailProps) => {
 
         <h1 className="mb-6 font-serif text-3xl font-bold text-foreground">{entry.title}</h1>
 
+        {entry.photo_url && (
+          <div className="mb-6 overflow-hidden rounded-xl border border-border/30">
+            <img src={entry.photo_url} alt="Day's photo" className="w-full max-h-[400px] object-cover" />
+          </div>
+        )}
+
         <div className="whitespace-pre-wrap font-serif text-base leading-relaxed text-foreground/90">
           {entry.content}
         </div>

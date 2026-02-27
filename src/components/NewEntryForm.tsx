@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Mood, saveEntry } from "@/lib/journal-store";
+import { Mood, saveEntry, uploadJournalPhoto, getHappySaveQuote } from "@/lib/journal-store";
 import MoodPicker from "./MoodPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
-import { Send, X } from "lucide-react";
+import { Send, X, Camera, ImagePlus } from "lucide-react";
 
 interface NewEntryFormProps {
   onSave: () => void;
@@ -17,23 +17,63 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<Mood | null>(null);
   const [saving, setSaving] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showSaveQuote, setShowSaveQuote] = useState(false);
+  const [saveQuote, setSaveQuote] = useState("");
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim() || !mood) return;
 
     setSaving(true);
+    let photoUrl = "";
+    if (photo) {
+      const url = await uploadJournalPhoto(photo);
+      if (url) photoUrl = url;
+    }
+
     await saveEntry({
       title: title.trim(),
       content: content.trim(),
       mood,
       date: new Date().toISOString().split("T")[0],
+      photo_url: photoUrl,
     });
+
     setSaving(false);
+    setSaveQuote(getHappySaveQuote());
+    setShowSaveQuote(true);
+  };
+
+  const handleQuoteDismiss = () => {
+    setShowSaveQuote(false);
     onSave();
   };
 
   const isValid = title.trim() && content.trim() && mood;
+
+  if (showSaveQuote) {
+    return (
+      <div className="animate-fade-in flex flex-col items-center justify-center space-y-6 rounded-xl border border-primary/20 p-10 text-center" style={{ background: "var(--gradient-glass)", backdropFilter: "blur(10px)" }}>
+        <div className="text-5xl">🎉</div>
+        <p className="font-serif text-xl font-medium text-foreground">{saveQuote}</p>
+        <Button onClick={handleQuoteDismiss} className="gap-2">
+          Continue ✨
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="animate-fade-in space-y-6">
@@ -58,6 +98,35 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
 
       <div>
         <Textarea placeholder="Let your thoughts flow freely... What's on your mind tonight?" value={content} onChange={(e) => setContent(e.target.value)} className="min-h-[200px] resize-none border-border/50 bg-card/50 font-serif text-base leading-relaxed placeholder:text-muted" />
+      </div>
+
+      {/* Photo upload */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-foreground">Photo of the day</label>
+        <div className="flex gap-3">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+            <ImagePlus className="h-4 w-4" />
+            Gallery
+            <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/50 bg-card/50 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+            <Camera className="h-4 w-4" />
+            Camera
+            <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+          </label>
+        </div>
+        {photoPreview && (
+          <div className="relative mt-3">
+            <img src={photoPreview} alt="Preview" className="h-48 w-full rounded-lg object-cover border border-border/50" />
+            <button
+              type="button"
+              onClick={() => { setPhoto(null); setPhotoPreview(null); }}
+              className="absolute right-2 top-2 rounded-full bg-background/80 p-1 text-foreground hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       <Button type="submit" disabled={!isValid || saving} className="w-full gap-2 shadow-[var(--shadow-glow)] transition-all duration-300">

@@ -16,29 +16,33 @@ const JournalEntryCard = ({ entry, index, onDelete, onClick }: JournalEntryCardP
       style={{ animationDelay: `${index * 80}ms`, background: "var(--gradient-glass)", backdropFilter: "blur(10px)" }}
       onClick={() => onClick(entry)}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-xl">{moodEmojis[entry.mood]}</span>
-            <span className="text-xs text-muted-foreground">{moodLabels[entry.mood]}</span>
-            <span className="text-xs text-muted-foreground">·</span>
-            <span className="text-xs text-muted-foreground">
-              {format(new Date(entry.date), "MMM d, yyyy")}
-            </span>
+      <div className="flex items-start gap-3">
+        {/* Photo thumbnail */}
+        {entry.photo_url && (
+          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border/30">
+            <img src={entry.photo_url} alt="" className="h-full w-full object-cover" />
           </div>
-          <h3 className="mb-1 font-serif text-lg font-semibold text-foreground">{entry.title}</h3>
-          <p className="line-clamp-2 text-sm text-muted-foreground">{entry.content}</p>
+        )}
+
+        <div className="flex flex-1 items-start justify-between">
+          <div className="flex-1">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-xl">{moodEmojis[entry.mood]}</span>
+              <span className="text-xs text-muted-foreground">{moodLabels[entry.mood]}</span>
+              <span className="text-xs text-muted-foreground">·</span>
+              <span className="text-xs text-muted-foreground">{format(new Date(entry.date), "MMM d, yyyy")}</span>
+            </div>
+            <h3 className="mb-1 font-serif text-lg font-semibold text-foreground">{entry.title}</h3>
+            <p className="line-clamp-2 text-sm text-muted-foreground">{entry.content}</p>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
+            className="ml-3 rounded-md p-1.5 text-muted opacity-0 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+            aria-label="Delete entry"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(entry.id);
-          }}
-          className="ml-3 rounded-md p-1.5 text-muted opacity-0 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-          aria-label="Delete entry"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
       </div>
     </div>
   );
