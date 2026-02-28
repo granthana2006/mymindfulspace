@@ -48,6 +48,8 @@ export interface StudyNote {
   title: string;
   content: string;
   tags: string[];
+  file_url: string;
+  file_name: string;
   created_at: string;
   updated_at: string;
 }
@@ -159,6 +161,29 @@ export async function updateStudyNote(id: string, updates: Partial<StudyNote>): 
 export async function deleteStudyNote(id: string): Promise<void> {
   const { error } = await supabase.from("study_notes").delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function uploadStudyFile(file: File): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const ext = file.name.split(".").pop();
+  const path = `${user.id}/${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("study-files")
+    .upload(path, file, { upsert: true });
+
+  if (error) {
+    console.error("Error uploading file:", error);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("study-files")
+    .getPublicUrl(path);
+
+  return urlData.publicUrl;
 }
 
 // GPA Records

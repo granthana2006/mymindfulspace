@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useCallback } from "react";
 import { JournalEntry, moodEmojis } from "@/lib/journal-store";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, RotateCw, RotateCcw, Crop, FlipHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import MonthlyRecap from "./MonthlyRecap";
 
 interface JournalCalendarProps {
@@ -13,6 +14,9 @@ interface JournalCalendarProps {
 const JournalCalendar = ({ entries, onBack }: JournalCalendarProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showRecap, setShowRecap] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState<{ url: string; entry: JournalEntry } | null>(null);
+  const [rotation, setRotation] = useState(0);
+  const [flipH, setFlipH] = useState(false);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -31,6 +35,19 @@ const JournalCalendar = ({ entries, onBack }: JournalCalendarProps) => {
   const monthKey = format(currentMonth, "yyyy-MM");
   const monthEntries = entries.filter((e) => e.date.startsWith(monthKey));
   const monthPhotos = monthEntries.filter((e) => e.photo_url).map((e) => ({ url: e.photo_url, date: e.date, title: e.title, mood: e.mood }));
+
+  const openEditor = (entry: JournalEntry) => {
+    if (!entry.photo_url) return;
+    setEditingPhoto({ url: entry.photo_url, entry });
+    setRotation(0);
+    setFlipH(false);
+  };
+
+  const closeEditor = () => {
+    setEditingPhoto(null);
+    setRotation(0);
+    setFlipH(false);
+  };
 
   if (showRecap) {
     return <MonthlyRecap photos={monthPhotos} monthLabel={format(currentMonth, "MMMM yyyy")} onBack={() => setShowRecap(false)} />;
@@ -81,9 +98,10 @@ const JournalCalendar = ({ entries, onBack }: JournalCalendarProps) => {
           return (
             <div
               key={dateStr}
+              onClick={() => entry && openEditor(entry)}
               className={`relative aspect-square overflow-hidden rounded-lg border transition-all ${
-                isToday ? "border-primary ring-1 ring-primary/30" : "border-border"
-              } ${entry?.photo_url ? "" : "bg-card"}`}
+                entry?.photo_url ? "cursor-pointer hover:ring-2 hover:ring-primary/50" : ""
+              } ${isToday ? "border-primary ring-1 ring-primary/30" : "border-border"} ${entry?.photo_url ? "" : "bg-card"}`}
             >
               {entry?.photo_url ? (
                 <>
@@ -102,6 +120,45 @@ const JournalCalendar = ({ entries, onBack }: JournalCalendarProps) => {
           );
         })}
       </div>
+
+      {/* Photo editor dialog */}
+      <Dialog open={!!editingPhoto} onOpenChange={(o) => !o && closeEditor()}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPhoto?.entry.title} — {editingPhoto && format(new Date(editingPhoto.entry.date), "MMMM d, yyyy")}
+            </DialogTitle>
+          </DialogHeader>
+          {editingPhoto && (
+            <div className="space-y-4">
+              <div className="relative overflow-hidden rounded-lg border border-border bg-secondary/30" style={{ aspectRatio: "4/3" }}>
+                <img
+                  src={editingPhoto.url}
+                  alt="Edit"
+                  className="h-full w-full object-contain transition-transform duration-300"
+                  style={{
+                    transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`,
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Button variant="outline" size="sm" className="gap-1" onClick={() => setRotation((r) => r - 90)}>
+                  <RotateCcw className="h-3.5 w-3.5" /> Left
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1" onClick={() => setRotation((r) => r + 90)}>
+                  <RotateCw className="h-3.5 w-3.5" /> Right
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1" onClick={() => setFlipH((f) => !f)}>
+                  <FlipHorizontal className="h-3.5 w-3.5" /> Flip
+                </Button>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                {moodEmojis[editingPhoto.entry.mood]} Mood: {editingPhoto.entry.mood}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

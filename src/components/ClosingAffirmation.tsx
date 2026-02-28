@@ -1,20 +1,20 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Heart, Sparkles } from "lucide-react";
+import { Sparkles, Coffee } from "lucide-react";
 
 const affirmations = [
-  "You survived today, and that is beautiful. You are enough. 💛",
-  "Every breath you took today was a gift. Rest well, brave soul. 🌙",
-  "You showed up today. That takes courage. Be proud. ✨",
-  "The universe is lucky to have you in it. Goodnight, wonderful one. 🌟",
-  "Today is done, and you made it through. Tomorrow is a new canvas. 🎨",
-  "You are stronger than you know. Sleep peacefully tonight. 💫",
-  "Your heart kept beating all day — for you. How magical is that? 🫶",
-  "The stars shine brighter because you exist. Sweet dreams. ⭐",
-  "Gratitude to the universe for this beautiful day and this wealthy, abundant life. 🙏",
-  "You are a miracle walking — never forget that. The world is better because of you. 🌈",
-  "Thank you, universe, for every breath, every lesson, every moment of grace today. 🌸",
-  "You made it through another beautiful day. Be grateful. Be proud. Be at peace. ☮️",
+  "Hey, take care of yourself out there! You're doing great. 💛",
+  "See you later! Remember — you're enough, always. 🌟",
+  "Catch you soon! Go grab a snack, you deserve it. 🍪",
+  "Signing off? Cool. The world's lucky to have you. ✨",
+  "Alright, go live your best life! We'll be here when you're back. 🎉",
+  "You crushed it today. Take a breather, champ! 💪",
+  "Off you go! Remember to hydrate and smile. 💧😊",
+  "Later, superstar! Your journal misses you already. 📝",
+  "Peace out! Go do something fun. You've earned it. 🎨",
+  "Stepping away? Smart move. Balance is everything. ☮️",
+  "See ya! Your future self will thank you for today. 🚀",
+  "Bye for now! You're braver than you think. 🦋",
 ];
 
 interface ClosingAffirmationProps {
@@ -37,7 +37,7 @@ const ClosingAffirmation = ({ onClose, onStay }: ClosingAffirmationProps) => {
           visible ? "scale-100 opacity-100" : "scale-90 opacity-0"
         }`}
       >
-        <Heart className="mx-auto mb-4 h-10 w-10 text-primary animate-pulse" />
+        <Coffee className="mx-auto mb-4 h-10 w-10 text-primary animate-pulse" />
         <p className="mb-6 font-serif text-lg leading-relaxed text-foreground">{affirmation}</p>
         <div className="flex gap-3">
           <Button variant="outline" onClick={onStay} className="flex-1">
@@ -45,7 +45,7 @@ const ClosingAffirmation = ({ onClose, onStay }: ClosingAffirmationProps) => {
           </Button>
           <Button onClick={onClose} className="flex-1 gap-2">
             <Sparkles className="h-4 w-4" />
-            Goodnight
+            See ya!
           </Button>
         </div>
       </div>
