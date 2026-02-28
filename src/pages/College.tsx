@@ -5,11 +5,10 @@ import {
   getAssignments, createAssignment, updateAssignment, deleteAssignment,
   getClassSchedule, createClassSchedule, deleteClassSchedule,
   getExams, createExam, updateExam, deleteExam,
-  getStudyNotes, createStudyNote, deleteStudyNote,
+  getStudyNotes, createStudyNote, deleteStudyNote, uploadStudyFile,
   getGpaRecords, createGpaRecord, deleteGpaRecord,
 } from "@/lib/college-store";
 import collegeWallpaper from "@/assets/college-wallpaper.jpg";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,9 +18,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
 import { format, differenceInDays, isPast } from "date-fns";
-import { Plus, Trash2, BookOpen, Calendar, GraduationCap, FileText, Clock, Timer, Play, Pause, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, BookOpen, Calendar, GraduationCap, FileText, Timer, Play, Pause, RotateCcw, CheckCircle2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -74,7 +73,6 @@ const College = () => {
           <p className="text-sm text-muted-foreground">Track assignments, schedule, exams & more</p>
         </div>
 
-        {/* Stats summary */}
         {!loading && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
@@ -94,7 +92,6 @@ const College = () => {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="flex flex-wrap gap-1 rounded-lg bg-secondary/80 backdrop-blur-sm p-1">
           {tabs.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -148,7 +145,6 @@ const AssignmentsTab = ({ assignments, userId, onRefresh }: { assignments: Assig
   const completed = assignments.filter((a) => a.status === "completed");
   const completionPercent = assignments.length > 0 ? Math.round((completed.length / assignments.length) * 100) : 0;
 
-  // Chart data by subject
   const subjectData = Object.entries(
     assignments.reduce((acc, a) => { acc[a.subject || "Other"] = (acc[a.subject || "Other"] || 0) + 1; return acc; }, {} as Record<string, number>)
   ).map(([name, value]) => ({ name, value }));
@@ -189,7 +185,6 @@ const AssignmentsTab = ({ assignments, userId, onRefresh }: { assignments: Assig
         </Dialog>
       </div>
 
-      {/* Subject distribution chart */}
       {subjectData.length > 0 && (
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardContent className="p-4">
@@ -341,14 +336,16 @@ const ExamsTab = ({ exams, userId, onRefresh }: { exams: Exam[]; userId: string;
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [examType, setExamType] = useState("midterm");
+  const [customType, setCustomType] = useState("");
   const [examDate, setExamDate] = useState("");
   const [examTime, setExamTime] = useState("");
   const [location, setLocation] = useState("");
 
   const handleAdd = async () => {
     if (!subject.trim() || !examDate) return;
-    await createExam({ user_id: userId, subject, exam_type: examType, exam_date: examDate, exam_time: examTime || null, location, notes: "", score: null, max_score: 100 });
-    setSubject(""); setExamDate(""); setExamTime(""); setLocation(""); setOpen(false);
+    const finalType = examType === "other" ? (customType.trim() || "other") : examType;
+    await createExam({ user_id: userId, subject, exam_type: finalType, exam_date: examDate, exam_time: examTime || null, location, notes: "", score: null, max_score: 100 });
+    setSubject(""); setExamDate(""); setExamTime(""); setLocation(""); setCustomType(""); setOpen(false);
     toast.success("Exam added"); onRefresh();
   };
 
@@ -374,11 +371,17 @@ const ExamsTab = ({ exams, userId, onRefresh }: { exams: Exam[]; userId: string;
                       <SelectItem value="midterm">Midterm</SelectItem>
                       <SelectItem value="final">Final</SelectItem>
                       <SelectItem value="assignment">Assignment</SelectItem>
+                      <SelectItem value="viva">Viva</SelectItem>
+                      <SelectItem value="practical">Practical</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div><Label>Date *</Label><Input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} /></div>
               </div>
+              {examType === "other" && (
+                <div><Label>Custom Type</Label><Input value={customType} onChange={(e) => setCustomType(e.target.value)} placeholder="Lab test, Presentation..." /></div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Time</Label><Input type="time" value={examTime} onChange={(e) => setExamTime(e.target.value)} /></div>
                 <div><Label>Location</Label><Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Hall A" /></div>
@@ -449,11 +452,24 @@ const NotesTab = ({ notes, userId, onRefresh }: { notes: StudyNote[]; userId: st
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleAdd = async () => {
     if (!title.trim()) return;
-    await createStudyNote({ user_id: userId, title, subject, content, tags: [] });
-    setTitle(""); setSubject(""); setContent(""); setOpen(false);
+    setUploading(true);
+    let fileUrl = "";
+    let fileName = "";
+    if (file) {
+      const url = await uploadStudyFile(file);
+      if (url) {
+        fileUrl = url;
+        fileName = file.name;
+      }
+    }
+    await createStudyNote({ user_id: userId, title, subject, content, tags: [], file_url: fileUrl, file_name: fileName });
+    setTitle(""); setSubject(""); setContent(""); setFile(null); setOpen(false);
+    setUploading(false);
     toast.success("Note saved"); onRefresh();
   };
 
@@ -471,7 +487,22 @@ const NotesTab = ({ notes, userId, onRefresh }: { notes: StudyNote[]; userId: st
               <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Chapter 5 Summary" /></div>
               <div><Label>Subject</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Physics" /></div>
               <div><Label>Content</Label><Textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Write your notes..." rows={6} /></div>
-              <Button onClick={handleAdd} className="w-full">Save Note</Button>
+              <div>
+                <Label>Attach File</Label>
+                <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground">
+                  <Upload className="h-4 w-4" />
+                  {file ? file.name : "Click to upload a file (PDF, DOCX, images...)"}
+                  <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
+                </label>
+                {file && (
+                  <button onClick={() => setFile(null)} className="mt-1 flex items-center gap-1 text-xs text-destructive hover:underline">
+                    <X className="h-3 w-3" /> Remove file
+                  </button>
+                )}
+              </div>
+              <Button onClick={handleAdd} className="w-full" disabled={uploading}>
+                {uploading ? "Uploading..." : "Save Note"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -502,6 +533,11 @@ const NotesTab = ({ notes, userId, onRefresh }: { notes: StudyNote[]; userId: st
                   </Button>
                 </div>
                 {n.content && <p className="mt-2 text-xs text-muted-foreground line-clamp-4 whitespace-pre-wrap">{n.content}</p>}
+                {(n as any).file_url && (
+                  <a href={(n as any).file_url} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline">
+                    <FileText className="h-3 w-3" /> {(n as any).file_name || "Attached file"}
+                  </a>
+                )}
                 <p className="mt-2 text-[10px] text-muted-foreground">{format(new Date(n.updated_at), "MMM d, yyyy")}</p>
               </CardContent>
             </Card>
@@ -516,18 +552,38 @@ const NotesTab = ({ notes, userId, onRefresh }: { notes: StudyNote[]; userId: st
 const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; onRefresh: () => void }) => {
   const [open, setOpen] = useState(false);
   const [semester, setSemester] = useState("");
-  const [subject, setSubject] = useState("");
-  const [credits, setCredits] = useState("3");
-  const [gradePoint, setGradePoint] = useState("0");
+  const [scale, setScale] = useState<"4" | "10">("10");
+  const [subjects, setSubjects] = useState<{ subject: string; credits: string; gradePoint: string }[]>([
+    { subject: "", credits: "3", gradePoint: "0" },
+  ]);
+
+  const addSubjectRow = () => setSubjects((s) => [...s, { subject: "", credits: "3", gradePoint: "0" }]);
+  const removeSubjectRow = (idx: number) => setSubjects((s) => s.filter((_, i) => i !== idx));
+  const updateSubjectRow = (idx: number, field: string, value: string) =>
+    setSubjects((s) => s.map((row, i) => i === idx ? { ...row, [field]: value } : row));
 
   const handleAdd = async () => {
-    if (!semester.trim() || !subject.trim()) return;
-    await createGpaRecord({ user_id: userId, semester, subject, credits: parseFloat(credits), grade_point: parseFloat(gradePoint) });
-    setSubject(""); setOpen(false);
-    toast.success("GPA record added"); onRefresh();
+    if (!semester.trim()) return;
+    const validSubjects = subjects.filter((s) => s.subject.trim());
+    if (validSubjects.length === 0) return;
+
+    for (const s of validSubjects) {
+      await createGpaRecord({
+        user_id: userId,
+        semester,
+        subject: s.subject,
+        credits: parseFloat(s.credits),
+        grade_point: parseFloat(s.gradePoint),
+      });
+    }
+    setSubjects([{ subject: "", credits: "3", gradePoint: "0" }]);
+    setOpen(false);
+    toast.success(`${validSubjects.length} record(s) added`);
+    onRefresh();
   };
 
-  // Calculate GPA per semester
+  const maxGP = scale === "4" ? 4 : 10;
+
   const semesters = [...new Set(gpa.map((g) => g.semester))];
   const semesterGpa = semesters.map((s) => {
     const records = gpa.filter((g) => g.semester === s);
@@ -547,24 +603,47 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
           <h2 className="font-semibold text-foreground">GPA Calculator</h2>
           {gpa.length > 0 && <p className="text-sm text-muted-foreground">CGPA: <span className="font-bold text-primary">{cgpa}</span></p>}
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm" className="gap-1"><Plus className="h-3.5 w-3.5" /> Add Record</Button></DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>Add GPA Record</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>Semester *</Label><Input value={semester} onChange={(e) => setSemester(e.target.value)} placeholder="Fall 2025" /></div>
-              <div><Label>Subject *</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Calculus I" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Credits</Label><Input type="number" value={credits} onChange={(e) => setCredits(e.target.value)} min="1" max="6" /></div>
-                <div><Label>Grade Point (0-4)</Label><Input type="number" value={gradePoint} onChange={(e) => setGradePoint(e.target.value)} min="0" max="4" step="0.1" /></div>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-0.5 rounded-md border border-border p-0.5">
+            <button onClick={() => setScale("4")} className={`rounded px-2 py-1 text-[10px] font-medium ${scale === "4" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>0-4</button>
+            <button onClick={() => setScale("10")} className={`rounded px-2 py-1 text-[10px] font-medium ${scale === "10" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>0-10</button>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button size="sm" className="gap-1"><Plus className="h-3.5 w-3.5" /> Add Record</Button></DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader><DialogTitle>Add GPA Records</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div><Label>Semester *</Label><Input value={semester} onChange={(e) => setSemester(e.target.value)} placeholder="Fall 2025" /></div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Subjects</Label>
+                    <button onClick={addSubjectRow} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                      <Plus className="h-3 w-3" /> Add Subject
+                    </button>
+                  </div>
+                  {subjects.map((s, i) => (
+                    <div key={i} className="flex items-end gap-2">
+                      <div className="flex-1"><Input value={s.subject} onChange={(e) => updateSubjectRow(i, "subject", e.target.value)} placeholder="Subject name" /></div>
+                      <div className="w-16"><Input type="number" value={s.credits} onChange={(e) => updateSubjectRow(i, "credits", e.target.value)} min="1" max="6" placeholder="Cr" /></div>
+                      <div className="w-16"><Input type="number" value={s.gradePoint} onChange={(e) => updateSubjectRow(i, "gradePoint", e.target.value)} min="0" max={maxGP} step="0.1" placeholder="GP" /></div>
+                      {subjects.length > 1 && (
+                        <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => removeSubjectRow(i)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground">Grade Point scale: 0–{maxGP}</p>
+                </div>
+
+                <Button onClick={handleAdd} className="w-full">Add All Records</Button>
               </div>
-              <Button onClick={handleAdd} className="w-full">Add Record</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* GPA trend chart */}
       {semesterGpa.length > 1 && (
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardContent className="p-4">
@@ -572,7 +651,7 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={semesterGpa}>
                 <XAxis dataKey="semester" tick={{ fontSize: 10, fill: "hsl(0,0%,45%)" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 4]} hide />
+                <YAxis domain={[0, maxGP]} hide />
                 <Tooltip content={({ active, payload }) => {
                   if (active && payload?.[0]) return (
                     <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
@@ -619,33 +698,107 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
   );
 };
 
-// ─── Study Timer Tab ─────────────────────────────────────────
+// ─── Study Timer Tab (background-safe) ───────────────────────
+const TIMER_KEY = "study-timer-state";
+
 const StudyTimerTab = () => {
   const [mode, setMode] = useState<"stopwatch" | "pomodoro">("pomodoro");
-  const [seconds, setSeconds] = useState(25 * 60);
-  const [running, setRunning] = useState(false);
   const [pomodoroTime, setPomodoroTime] = useState(25);
-  const intervalRef = useRef<number | null>(null);
+  const [displaySeconds, setDisplaySeconds] = useState(25 * 60);
+  const [running, setRunning] = useState(false);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [baseSeconds, setBaseSeconds] = useState(0);
 
+  // Restore state from localStorage
   useEffect(() => {
-    if (running) {
-      intervalRef.current = window.setInterval(() => {
-        setSeconds((s) => {
-          if (mode === "pomodoro" && s <= 1) {
-            setRunning(false);
-            toast.success("⏰ Pomodoro complete! Take a break!");
-            return 0;
-          }
-          return mode === "pomodoro" ? s - 1 : s + 1;
-        });
-      }, 1000);
+    const saved = localStorage.getItem(TIMER_KEY);
+    if (saved) {
+      const state = JSON.parse(saved);
+      setMode(state.mode);
+      setPomodoroTime(state.pomodoroTime);
+      setBaseSeconds(state.baseSeconds);
+      if (state.running && state.startedAt) {
+        setRunning(true);
+        setStartedAt(state.startedAt);
+      } else {
+        setDisplaySeconds(state.displaySeconds);
+      }
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [running, mode]);
+  }, []);
+
+  // Save state to localStorage
+  useEffect(() => {
+    localStorage.setItem(TIMER_KEY, JSON.stringify({
+      mode, pomodoroTime, running, startedAt, baseSeconds, displaySeconds,
+    }));
+  }, [mode, pomodoroTime, running, startedAt, baseSeconds, displaySeconds]);
+
+  // Tick using real time differences (background-safe)
+  useEffect(() => {
+    if (!running || !startedAt) return;
+
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      if (mode === "pomodoro") {
+        const remaining = Math.max(0, baseSeconds - elapsed);
+        setDisplaySeconds(remaining);
+        if (remaining <= 0) {
+          setRunning(false);
+          setStartedAt(null);
+          toast.success("⏰ Pomodoro complete! Take a break!");
+        }
+      } else {
+        setDisplaySeconds(baseSeconds + elapsed);
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [running, startedAt, baseSeconds, mode]);
+
+  const startTimer = () => {
+    setStartedAt(Date.now());
+    setBaseSeconds(displaySeconds);
+    setRunning(true);
+  };
+
+  const pauseTimer = () => {
+    if (startedAt) {
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      if (mode === "pomodoro") {
+        setBaseSeconds(Math.max(0, baseSeconds - elapsed));
+      } else {
+        setBaseSeconds(baseSeconds + elapsed);
+      }
+    }
+    setRunning(false);
+    setStartedAt(null);
+  };
 
   const resetTimer = () => {
     setRunning(false);
-    setSeconds(mode === "pomodoro" ? pomodoroTime * 60 : 0);
+    setStartedAt(null);
+    const val = mode === "pomodoro" ? pomodoroTime * 60 : 0;
+    setBaseSeconds(val);
+    setDisplaySeconds(val);
+  };
+
+  const switchMode = (newMode: "pomodoro" | "stopwatch") => {
+    setRunning(false);
+    setStartedAt(null);
+    setMode(newMode);
+    const val = newMode === "pomodoro" ? pomodoroTime * 60 : 0;
+    setBaseSeconds(val);
+    setDisplaySeconds(val);
+  };
+
+  const selectPomodoro = (m: number) => {
+    setPomodoroTime(m);
+    setRunning(false);
+    setStartedAt(null);
+    setBaseSeconds(m * 60);
+    setDisplaySeconds(m * 60);
   };
 
   const formatTime = (s: number) => {
@@ -654,16 +807,16 @@ const StudyTimerTab = () => {
     return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   };
 
-  const progress = mode === "pomodoro" ? ((pomodoroTime * 60 - seconds) / (pomodoroTime * 60)) * 100 : 0;
+  const progress = mode === "pomodoro" ? ((pomodoroTime * 60 - displaySeconds) / (pomodoroTime * 60)) * 100 : 0;
 
   return (
     <div className="flex flex-col items-center space-y-6 py-8">
       <div className="flex gap-1 rounded-lg border border-border p-1">
-        <button onClick={() => { setMode("pomodoro"); setRunning(false); setSeconds(pomodoroTime * 60); }}
+        <button onClick={() => switchMode("pomodoro")}
           className={`rounded-md px-3 py-1.5 text-xs font-medium ${mode === "pomodoro" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
           Pomodoro
         </button>
-        <button onClick={() => { setMode("stopwatch"); setRunning(false); setSeconds(0); }}
+        <button onClick={() => switchMode("stopwatch")}
           className={`rounded-md px-3 py-1.5 text-xs font-medium ${mode === "stopwatch" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
           Stopwatch
         </button>
@@ -672,7 +825,7 @@ const StudyTimerTab = () => {
       {mode === "pomodoro" && (
         <div className="flex items-center gap-2">
           {[15, 25, 45, 60].map((m) => (
-            <button key={m} onClick={() => { setPomodoroTime(m); setSeconds(m * 60); setRunning(false); }}
+            <button key={m} onClick={() => selectPomodoro(m)}
               className={`rounded-full px-3 py-1 text-xs ${pomodoroTime === m ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}>
               {m}m
             </button>
@@ -689,15 +842,19 @@ const StudyTimerTab = () => {
               strokeDashoffset="70" strokeLinecap="round" className="transition-all duration-1000" />
           </svg>
         )}
-        <span className="font-mono text-4xl font-bold text-foreground">{formatTime(seconds)}</span>
+        <span className="font-mono text-4xl font-bold text-foreground">{formatTime(displaySeconds)}</span>
       </div>
 
       <div className="flex items-center gap-3">
         <Button variant="outline" size="icon" onClick={resetTimer}><RotateCcw className="h-4 w-4" /></Button>
-        <Button size="lg" onClick={() => setRunning((r) => !r)} className="gap-2 px-8">
-          {running ? <><Pause className="h-4 w-4" /> Pause</> : <><Play className="h-4 w-4" /> {seconds === 0 && mode === "pomodoro" ? "Start" : "Resume"}</>}
+        <Button size="lg" onClick={running ? pauseTimer : startTimer} className="gap-2 px-8">
+          {running ? <><Pause className="h-4 w-4" /> Pause</> : <><Play className="h-4 w-4" /> {displaySeconds === 0 && mode === "pomodoro" ? "Start" : "Resume"}</>}
         </Button>
       </div>
+
+      {running && (
+        <p className="text-xs text-muted-foreground animate-pulse">⏱️ Timer runs even when you switch tabs</p>
+      )}
     </div>
   );
 };

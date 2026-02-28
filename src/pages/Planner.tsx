@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Calendar, ListTodo, BarChart2 } from "lucide-react";
-import { getTasks, Task } from "@/lib/task-store";
+import { ChevronLeft, ChevronRight, Calendar, ListTodo, BarChart2, Trash2 } from "lucide-react";
+import { getTasks, deleteTask, Task } from "@/lib/task-store";
 import PlannerView from "@/components/planner/PlannerView";
 import TaskItem from "@/components/planner/TaskItem";
 import AddTaskForm from "@/components/planner/AddTaskForm";
 import TaskCompletionChart from "@/components/planner/TaskCompletionChart";
+import { Button } from "@/components/ui/button";
 import { format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths } from "date-fns";
+import { toast } from "sonner";
 
 type ViewMode = "daily" | "weekly" | "monthly";
 type Tab = "planner" | "todos" | "stats";
@@ -41,6 +43,15 @@ const Planner = () => {
   const incompleteTasks = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
 
+  const handleDeleteAll = async () => {
+    if (!window.confirm("Delete all tasks? This cannot be undone.")) return;
+    for (const t of tasks) {
+      await deleteTask(t.id);
+    }
+    toast.success("All tasks deleted");
+    loadTasks();
+  };
+
   return (
     <div className="animate-fade-in space-y-6">
       <div>
@@ -49,24 +60,31 @@ const Planner = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg bg-secondary p-1">
-        {([
-          { key: "planner" as const, icon: <Calendar className="h-4 w-4" />, label: "Planner" },
-          { key: "todos" as const, icon: <ListTodo className="h-4 w-4" />, label: "All Tasks", badge: incompleteTasks.length },
-          { key: "stats" as const, icon: <BarChart2 className="h-4 w-4" />, label: "Stats" },
-        ]).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t.icon}
-            {t.label}
-            {t.badge ? <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">{t.badge}</span> : null}
-          </button>
-        ))}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex gap-1 rounded-lg bg-secondary p-1">
+          {([
+            { key: "planner" as const, icon: <Calendar className="h-4 w-4" />, label: "Planner" },
+            { key: "todos" as const, icon: <ListTodo className="h-4 w-4" />, label: "All Tasks", badge: incompleteTasks.length },
+            { key: "stats" as const, icon: <BarChart2 className="h-4 w-4" />, label: "Stats" },
+          ]).map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                tab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.icon}
+              {t.label}
+              {t.badge ? <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">{t.badge}</span> : null}
+            </button>
+          ))}
+        </div>
+        {tasks.length > 0 && (
+          <Button variant="ghost" size="sm" className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleDeleteAll}>
+            <Trash2 className="h-3.5 w-3.5" /> Delete All
+          </Button>
+        )}
       </div>
 
       {tab === "planner" && (
