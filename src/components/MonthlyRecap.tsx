@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ArrowLeft, Pause, Play, SkipForward, SkipBack, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Pause, Play, SkipForward, SkipBack, Volume2, VolumeX, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Mood, moodEmojis } from "@/lib/journal-store";
 import { format } from "date-fns";
 
@@ -17,54 +18,60 @@ interface MonthlyRecapProps {
   onBack: () => void;
 }
 
-// Mood-based music generator using Web Audio API
-const createMoodMusic = (mood: Mood) => {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+// Cheerful music generator using Web Audio API
+const createCheerfulMusic = (ctx: AudioContext) => {
+  const gain = ctx.createGain();
+  gain.connect(ctx.destination);
+  gain.gain.setValueAtTime(0.12, ctx.currentTime);
 
-    const moodNotes: Record<Mood, number[]> = {
-      happy: [523.25, 659.25, 783.99, 1046.5],     // C5 E5 G5 C6
-      peaceful: [392, 493.88, 587.33, 659.25],      // G4 B4 D5 E5
-      grateful: [440, 554.37, 659.25, 880],          // A4 C#5 E5 A5
-      reflective: [349.23, 440, 523.25, 659.25],     // F4 A4 C5 E5
-      energetic: [587.33, 739.99, 880, 1174.66],     // D5 F#5 A5 D6
-      melancholy: [329.63, 392, 493.88, 587.33],     // E4 G4 B4 D5
-    };
+  // Cheerful major-key melody (C major happy progression)
+  const melody = [
+    523.25, 587.33, 659.25, 783.99, 659.25, 783.99, 880, 783.99,
+    659.25, 587.33, 523.25, 659.25, 783.99, 1046.5, 880, 783.99,
+  ];
 
-    const notes = moodNotes[mood] || moodNotes.peaceful;
-    let time = ctx.currentTime;
+  let time = ctx.currentTime;
 
-    for (let repeat = 0; repeat < 3; repeat++) {
-      notes.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const noteGain = ctx.createGain();
-        osc.connect(noteGain);
-        noteGain.connect(gain);
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, time);
-        noteGain.gain.setValueAtTime(0, time);
-        noteGain.gain.linearRampToValueAtTime(0.3, time + 0.1);
-        noteGain.gain.exponentialRampToValueAtTime(0.001, time + 0.8);
-        osc.start(time);
-        osc.stop(time + 0.8);
-        time += 0.5;
-      });
-    }
+  // Add a warm pad chord
+  [261.63, 329.63, 392].forEach((freq) => {
+    const pad = ctx.createOscillator();
+    const padGain = ctx.createGain();
+    pad.connect(padGain);
+    padGain.connect(gain);
+    pad.type = "sine";
+    pad.frequency.setValueAtTime(freq, time);
+    padGain.gain.setValueAtTime(0.06, time);
+    padGain.gain.linearRampToValueAtTime(0.06, time + 8);
+    padGain.gain.exponentialRampToValueAtTime(0.001, time + 9);
+    pad.start(time);
+    pad.stop(time + 9);
+  });
 
-    return ctx;
-  } catch {
-    return null;
-  }
+  // Play melody notes
+  melody.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const noteGain = ctx.createGain();
+    osc.connect(noteGain);
+    noteGain.connect(gain);
+    osc.type = i % 2 === 0 ? "triangle" : "sine";
+    osc.frequency.setValueAtTime(freq, time);
+    noteGain.gain.setValueAtTime(0, time);
+    noteGain.gain.linearRampToValueAtTime(0.25, time + 0.05);
+    noteGain.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
+    osc.start(time);
+    osc.stop(time + 0.5);
+    time += 0.35;
+  });
 };
 
 const MonthlyRecap = ({ photos, monthLabel, onBack }: MonthlyRecapProps) => {
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [musicOn, setMusicOn] = useState(true);
-  const audioRef = useRef<AudioContext | null>(null);
+  const [songUrl, setSongUrl] = useState("");
+  const [showSongInput, setShowSongInput] = useState(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const userAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const next = useCallback(() => {
     setCurrent((c) => (c + 1) % photos.length);
@@ -76,23 +83,58 @@ const MonthlyRecap = ({ photos, monthLabel, onBack }: MonthlyRecapProps) => {
 
   useEffect(() => {
     if (!playing) return;
-    const timer = setInterval(next, 3000);
+    const timer = setInterval(next, 3500);
     return () => clearInterval(timer);
   }, [playing, next]);
 
-  // Play mood music when slide changes
+  // Play cheerful music that loops
   useEffect(() => {
-    if (!musicOn || !playing || photos.length === 0) return;
-    if (audioRef.current) {
-      try { audioRef.current.close(); } catch {}
-    }
-    audioRef.current = createMoodMusic(photos[current]?.mood || "peaceful");
-    return () => {
-      if (audioRef.current) {
-        try { audioRef.current.close(); } catch {}
-      }
+    if (!musicOn || !playing || photos.length === 0 || songUrl) return;
+
+    // Create new cheerful melody every ~6 seconds
+    const playMelody = () => {
+      try {
+        if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioCtxRef.current = ctx;
+        createCheerfulMusic(ctx);
+      } catch {}
     };
-  }, [current, musicOn, playing, photos]);
+
+    playMelody();
+    const interval = setInterval(playMelody, 6000);
+
+    return () => {
+      clearInterval(interval);
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+    };
+  }, [musicOn, playing, photos.length, songUrl]);
+
+  // Handle user song URL
+  useEffect(() => {
+    if (!songUrl || !musicOn) {
+      if (userAudioRef.current) { userAudioRef.current.pause(); userAudioRef.current = null; }
+      return;
+    }
+    // Stop Web Audio
+    if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
+
+    const audio = new Audio(songUrl);
+    audio.loop = true;
+    audio.volume = 0.5;
+    if (playing) audio.play().catch(() => {});
+    userAudioRef.current = audio;
+
+    return () => { audio.pause(); audio.src = ""; };
+  }, [songUrl, musicOn]);
+
+  // Pause/play user audio
+  useEffect(() => {
+    if (userAudioRef.current) {
+      if (playing && musicOn) userAudioRef.current.play().catch(() => {});
+      else userAudioRef.current.pause();
+    }
+  }, [playing, musicOn]);
 
   if (photos.length === 0) {
     return (
@@ -154,10 +196,28 @@ const MonthlyRecap = ({ photos, monthLabel, onBack }: MonthlyRecapProps) => {
           {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </Button>
         <Button variant="ghost" size="icon" onClick={next}><SkipForward className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => setShowSongInput((s) => !s)}>
+          <Music className="h-4 w-4" />
+        </Button>
       </div>
 
+      {showSongInput && (
+        <div className="mx-auto max-w-sm space-y-2">
+          <p className="text-xs text-center text-muted-foreground">Paste a direct audio link (MP3/WAV) or Spotify embed URL</p>
+          <Input
+            value={songUrl}
+            onChange={(e) => setSongUrl(e.target.value)}
+            placeholder="https://... your favorite song link"
+            className="text-sm"
+          />
+          {songUrl && (
+            <button onClick={() => setSongUrl("")} className="text-xs text-destructive hover:underline">Remove custom song</button>
+          )}
+        </div>
+      )}
+
       <p className="text-center text-xs text-muted-foreground">
-        {current + 1} of {photos.length} · 🎵 Mood music: {musicOn ? "on" : "off"}
+        {current + 1} of {photos.length} · 🎵 {songUrl ? "Custom song" : "Cheerful music"}: {musicOn ? "on" : "off"}
       </p>
     </div>
   );

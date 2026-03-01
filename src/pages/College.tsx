@@ -18,9 +18,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
 import { format, differenceInDays, isPast } from "date-fns";
-import { Plus, Trash2, BookOpen, Calendar, GraduationCap, FileText, Timer, Play, Pause, RotateCcw, CheckCircle2, Upload, X } from "lucide-react";
+import { Plus, Trash2, BookOpen, Calendar, GraduationCap, FileText, Timer, Play, Pause, RotateCcw, CheckCircle2, Upload, X, Info } from "lucide-react";
 import { toast } from "sonner";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -56,7 +56,7 @@ const College = () => {
     { key: "schedule", label: "Schedule", icon: <Calendar className="h-4 w-4" /> },
     { key: "exams", label: "Exams", icon: <GraduationCap className="h-4 w-4" /> },
     { key: "notes", label: "Notes", icon: <FileText className="h-4 w-4" /> },
-    { key: "gpa", label: "GPA", icon: <BarChart className="h-4 w-4" /> },
+    { key: "gpa", label: "GPA", icon: <GraduationCap className="h-4 w-4" /> },
     { key: "timer", label: "Study Timer", icon: <Timer className="h-4 w-4" /> },
   ];
 
@@ -145,9 +145,16 @@ const AssignmentsTab = ({ assignments, userId, onRefresh }: { assignments: Assig
   const completed = assignments.filter((a) => a.status === "completed");
   const completionPercent = assignments.length > 0 ? Math.round((completed.length / assignments.length) * 100) : 0;
 
+  // Radar chart data by subject (unique visualization)
   const subjectData = Object.entries(
-    assignments.reduce((acc, a) => { acc[a.subject || "Other"] = (acc[a.subject || "Other"] || 0) + 1; return acc; }, {} as Record<string, number>)
-  ).map(([name, value]) => ({ name, value }));
+    assignments.reduce((acc, a) => {
+      const key = a.subject || "Other";
+      if (!acc[key]) acc[key] = { total: 0, done: 0 };
+      acc[key].total++;
+      if (a.status === "completed") acc[key].done++;
+      return acc;
+    }, {} as Record<string, { total: number; done: number }>)
+  ).map(([name, { total, done }]) => ({ name, total, done, completion: total > 0 ? Math.round((done / total) * 100) : 0 }));
 
   return (
     <div className="space-y-4">
@@ -185,19 +192,52 @@ const AssignmentsTab = ({ assignments, userId, onRefresh }: { assignments: Assig
         </Dialog>
       </div>
 
-      {subjectData.length > 0 && (
+      {/* Radar chart by subject */}
+      {subjectData.length > 1 && (
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardContent className="p-4">
-            <h3 className="mb-2 text-sm font-semibold text-foreground">By Subject</h3>
-            <ResponsiveContainer width="100%" height={120}>
-              <BarChart data={subjectData} barSize={20}>
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(0,0%,45%)" }} axisLine={false} tickLine={false} />
-                <YAxis hide />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {subjectData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Bar>
-              </BarChart>
+            <h3 className="mb-2 text-sm font-semibold text-foreground">Subject Overview</h3>
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart data={subjectData} outerRadius="70%">
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                <PolarRadiusAxis hide domain={[0, 100]} />
+                <Radar name="Completion %" dataKey="completion" stroke="hsl(243, 75%, 58%)" fill="hsl(243, 75%, 58%)" fillOpacity={0.3} />
+                <Radar name="Total" dataKey="total" stroke="hsl(142, 71%, 45%)" fill="hsl(142, 71%, 45%)" fillOpacity={0.15} />
+                <Tooltip content={({ active, payload }) => {
+                  if (active && payload?.length) {
+                    const d = payload[0]?.payload;
+                    return (
+                      <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
+                        <p className="font-medium">{d.name}</p>
+                        <p>{d.done}/{d.total} done ({d.completion}%)</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }} />
+              </RadarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Single subject: pie chart */}
+      {subjectData.length === 1 && assignments.length > 0 && (
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4 flex items-center gap-4">
+            <ResponsiveContainer width={80} height={80}>
+              <PieChart>
+                <Pie data={[{ value: completed.length }, { value: pending.length }]} dataKey="value" innerRadius={22} outerRadius={35} startAngle={90} endAngle={-270}>
+                  <Cell fill="hsl(142, 71%, 45%)" />
+                  <Cell fill="hsl(var(--border))" />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div>
+              <p className="text-sm font-medium text-foreground">{completed.length}/{assignments.length} completed</p>
+              <p className="text-xs text-muted-foreground">{subjectData[0].name}</p>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -462,10 +502,7 @@ const NotesTab = ({ notes, userId, onRefresh }: { notes: StudyNote[]; userId: st
     let fileName = "";
     if (file) {
       const url = await uploadStudyFile(file);
-      if (url) {
-        fileUrl = url;
-        fileName = file.name;
-      }
+      if (url) { fileUrl = url; fileName = file.name; }
     }
     await createStudyNote({ user_id: userId, title, subject, content, tags: [], file_url: fileUrl, file_name: fileName });
     setTitle(""); setSubject(""); setContent(""); setFile(null); setOpen(false);
@@ -549,23 +586,53 @@ const NotesTab = ({ notes, userId, onRefresh }: { notes: StudyNote[]; userId: st
 };
 
 // ─── GPA Tab ─────────────────────────────────────────────────
+const GPA_GUIDE_4 = [
+  { grade: "A+/O", range: "90-100%", gp: "4.0" },
+  { grade: "A", range: "80-89%", gp: "3.7-4.0" },
+  { grade: "B+", range: "70-79%", gp: "3.3" },
+  { grade: "B", range: "60-69%", gp: "3.0" },
+  { grade: "C+", range: "50-59%", gp: "2.3" },
+  { grade: "C", range: "40-49%", gp: "2.0" },
+  { grade: "F", range: "<40%", gp: "0" },
+];
+
+const GPA_GUIDE_10 = [
+  { grade: "O (Outstanding)", range: "90-100%", gp: "10" },
+  { grade: "A+ (Excellent)", range: "80-89%", gp: "9" },
+  { grade: "A (Very Good)", range: "70-79%", gp: "8" },
+  { grade: "B+ (Good)", range: "60-69%", gp: "7" },
+  { grade: "B (Above Avg)", range: "55-59%", gp: "6" },
+  { grade: "C (Average)", range: "50-54%", gp: "5" },
+  { grade: "P (Pass)", range: "40-49%", gp: "4" },
+  { grade: "F (Fail)", range: "<40%", gp: "0" },
+];
+
 const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; onRefresh: () => void }) => {
   const [open, setOpen] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [semester, setSemester] = useState("");
   const [scale, setScale] = useState<"4" | "10">("10");
   const [subjects, setSubjects] = useState<{ subject: string; credits: string; gradePoint: string }[]>([
-    { subject: "", credits: "3", gradePoint: "0" },
+    { subject: "", credits: "3", gradePoint: "" },
   ]);
 
-  const addSubjectRow = () => setSubjects((s) => [...s, { subject: "", credits: "3", gradePoint: "0" }]);
+  const addSubjectRow = () => setSubjects((s) => [...s, { subject: "", credits: "3", gradePoint: "" }]);
   const removeSubjectRow = (idx: number) => setSubjects((s) => s.filter((_, i) => i !== idx));
   const updateSubjectRow = (idx: number, field: string, value: string) =>
     setSubjects((s) => s.map((row, i) => i === idx ? { ...row, [field]: value } : row));
 
   const handleAdd = async () => {
-    if (!semester.trim()) return;
-    const validSubjects = subjects.filter((s) => s.subject.trim());
-    if (validSubjects.length === 0) return;
+    if (!semester.trim()) { toast.error("Please enter a semester name"); return; }
+    const validSubjects = subjects.filter((s) => s.subject.trim() && s.gradePoint !== "");
+    if (validSubjects.length === 0) { toast.error("Please add at least one subject with a grade point"); return; }
+
+    const maxGP = scale === "4" ? 4 : 10;
+    for (const s of validSubjects) {
+      const gp = parseFloat(s.gradePoint);
+      const cr = parseFloat(s.credits);
+      if (isNaN(gp) || gp < 0 || gp > maxGP) { toast.error(`Grade point for ${s.subject} must be 0-${maxGP}`); return; }
+      if (isNaN(cr) || cr <= 0) { toast.error(`Credits for ${s.subject} must be > 0`); return; }
+    }
 
     for (const s of validSubjects) {
       await createGpaRecord({
@@ -576,20 +643,22 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
         grade_point: parseFloat(s.gradePoint),
       });
     }
-    setSubjects([{ subject: "", credits: "3", gradePoint: "0" }]);
+    setSubjects([{ subject: "", credits: "3", gradePoint: "" }]);
+    setSemester("");
     setOpen(false);
     toast.success(`${validSubjects.length} record(s) added`);
     onRefresh();
   };
 
   const maxGP = scale === "4" ? 4 : 10;
+  const guide = scale === "4" ? GPA_GUIDE_4 : GPA_GUIDE_10;
 
   const semesters = [...new Set(gpa.map((g) => g.semester))];
   const semesterGpa = semesters.map((s) => {
     const records = gpa.filter((g) => g.semester === s);
     const totalCredits = records.reduce((sum, r) => sum + r.credits, 0);
     const totalPoints = records.reduce((sum, r) => sum + r.credits * r.grade_point, 0);
-    return { semester: s, gpa: totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00", records };
+    return { semester: s, gpa: totalCredits > 0 ? +(totalPoints / totalCredits).toFixed(2) : 0, records };
   });
 
   const overallCredits = gpa.reduce((sum, r) => sum + r.credits, 0);
@@ -601,9 +670,12 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-semibold text-foreground">GPA Calculator</h2>
-          {gpa.length > 0 && <p className="text-sm text-muted-foreground">CGPA: <span className="font-bold text-primary">{cgpa}</span></p>}
+          {gpa.length > 0 && <p className="text-sm text-muted-foreground">CGPA: <span className="font-bold text-primary">{cgpa}</span> / {maxGP}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => setShowGuide((g) => !g)}>
+            <Info className="h-3.5 w-3.5" /> Guide
+          </Button>
           <div className="flex gap-0.5 rounded-md border border-border p-0.5">
             <button onClick={() => setScale("4")} className={`rounded px-2 py-1 text-[10px] font-medium ${scale === "4" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>0-4</button>
             <button onClick={() => setScale("10")} className={`rounded px-2 py-1 text-[10px] font-medium ${scale === "10" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>0-10</button>
@@ -611,7 +683,7 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button size="sm" className="gap-1"><Plus className="h-3.5 w-3.5" /> Add Record</Button></DialogTrigger>
             <DialogContent className="sm:max-w-lg">
-              <DialogHeader><DialogTitle>Add GPA Records</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Add GPA Records ({scale === "4" ? "0-4 Scale" : "0-10 Scale"})</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div><Label>Semester *</Label><Input value={semester} onChange={(e) => setSemester(e.target.value)} placeholder="Fall 2025" /></div>
 
@@ -622,19 +694,21 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
                       <Plus className="h-3 w-3" /> Add Subject
                     </button>
                   </div>
+                  <div className="grid grid-cols-[1fr_60px_60px_32px] gap-1 text-[10px] text-muted-foreground px-1">
+                    <span>Subject</span><span>Credits</span><span>GP (0-{maxGP})</span><span></span>
+                  </div>
                   {subjects.map((s, i) => (
-                    <div key={i} className="flex items-end gap-2">
-                      <div className="flex-1"><Input value={s.subject} onChange={(e) => updateSubjectRow(i, "subject", e.target.value)} placeholder="Subject name" /></div>
-                      <div className="w-16"><Input type="number" value={s.credits} onChange={(e) => updateSubjectRow(i, "credits", e.target.value)} min="1" max="6" placeholder="Cr" /></div>
-                      <div className="w-16"><Input type="number" value={s.gradePoint} onChange={(e) => updateSubjectRow(i, "gradePoint", e.target.value)} min="0" max={maxGP} step="0.1" placeholder="GP" /></div>
-                      {subjects.length > 1 && (
+                    <div key={i} className="grid grid-cols-[1fr_60px_60px_32px] gap-1 items-end">
+                      <Input value={s.subject} onChange={(e) => updateSubjectRow(i, "subject", e.target.value)} placeholder="Subject" />
+                      <Input type="number" value={s.credits} onChange={(e) => updateSubjectRow(i, "credits", e.target.value)} min="1" max="8" />
+                      <Input type="number" value={s.gradePoint} onChange={(e) => updateSubjectRow(i, "gradePoint", e.target.value)} min="0" max={maxGP} step="0.1" placeholder="GP" />
+                      {subjects.length > 1 ? (
                         <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => removeSubjectRow(i)}>
                           <X className="h-3.5 w-3.5" />
                         </Button>
-                      )}
+                      ) : <div />}
                     </div>
                   ))}
-                  <p className="text-[10px] text-muted-foreground">Grade Point scale: 0–{maxGP}</p>
                 </div>
 
                 <Button onClick={handleAdd} className="w-full">Add All Records</Button>
@@ -644,18 +718,44 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
         </div>
       </div>
 
+      {/* GPA Guide */}
+      {showGuide && (
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Info className="h-4 w-4 text-primary" /> Grade → Grade Point Reference ({scale === "4" ? "0-4" : "0-10"} Scale)
+            </h3>
+            <div className="grid grid-cols-3 gap-1 text-xs">
+              <span className="font-medium text-muted-foreground">Grade</span>
+              <span className="font-medium text-muted-foreground">Marks %</span>
+              <span className="font-medium text-muted-foreground">Grade Point</span>
+              {guide.map((g) => (
+                <React.Fragment key={g.grade}>
+                  <span className="text-foreground">{g.grade}</span>
+                  <span className="text-muted-foreground">{g.range}</span>
+                  <span className="font-medium text-primary">{g.gp}</span>
+                </React.Fragment>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              CGPA = Σ(Credits × Grade Point) / Σ(Credits)
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {semesterGpa.length > 1 && (
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardContent className="p-4">
             <h3 className="mb-2 text-sm font-semibold text-foreground">GPA Trend</h3>
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={semesterGpa}>
-                <XAxis dataKey="semester" tick={{ fontSize: 10, fill: "hsl(0,0%,45%)" }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="semester" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, maxGP]} hide />
                 <Tooltip content={({ active, payload }) => {
                   if (active && payload?.[0]) return (
                     <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
-                      <p className="font-medium">GPA: {payload[0].value}</p>
+                      <p className="font-medium">GPA: {payload[0].value}/{maxGP}</p>
                     </div>
                   );
                   return null;
@@ -675,7 +775,7 @@ const GpaTab = ({ gpa, userId, onRefresh }: { gpa: GpaRecord[]; userId: string; 
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-medium text-foreground">{s.semester}</h3>
-                <Badge variant="default" className="text-xs">GPA: {s.gpa}</Badge>
+                <Badge variant="default" className="text-xs">GPA: {s.gpa}/{maxGP}</Badge>
               </div>
               <div className="space-y-1">
                 {s.records.map((r) => (
@@ -709,7 +809,6 @@ const StudyTimerTab = () => {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [baseSeconds, setBaseSeconds] = useState(0);
 
-  // Restore state from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(TIMER_KEY);
     if (saved) {
@@ -726,113 +825,54 @@ const StudyTimerTab = () => {
     }
   }, []);
 
-  // Save state to localStorage
   useEffect(() => {
-    localStorage.setItem(TIMER_KEY, JSON.stringify({
-      mode, pomodoroTime, running, startedAt, baseSeconds, displaySeconds,
-    }));
+    localStorage.setItem(TIMER_KEY, JSON.stringify({ mode, pomodoroTime, running, startedAt, baseSeconds, displaySeconds }));
   }, [mode, pomodoroTime, running, startedAt, baseSeconds, displaySeconds]);
 
-  // Tick using real time differences (background-safe)
   useEffect(() => {
     if (!running || !startedAt) return;
-
     const tick = () => {
       const elapsed = Math.floor((Date.now() - startedAt) / 1000);
       if (mode === "pomodoro") {
         const remaining = Math.max(0, baseSeconds - elapsed);
         setDisplaySeconds(remaining);
-        if (remaining <= 0) {
-          setRunning(false);
-          setStartedAt(null);
-          toast.success("⏰ Pomodoro complete! Take a break!");
-        }
+        if (remaining <= 0) { setRunning(false); setStartedAt(null); toast.success("⏰ Pomodoro complete! Take a break!"); }
       } else {
         setDisplaySeconds(baseSeconds + elapsed);
       }
     };
-
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [running, startedAt, baseSeconds, mode]);
 
-  const startTimer = () => {
-    setStartedAt(Date.now());
-    setBaseSeconds(displaySeconds);
-    setRunning(true);
-  };
-
+  const startTimer = () => { setStartedAt(Date.now()); setBaseSeconds(displaySeconds); setRunning(true); };
   const pauseTimer = () => {
     if (startedAt) {
       const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-      if (mode === "pomodoro") {
-        setBaseSeconds(Math.max(0, baseSeconds - elapsed));
-      } else {
-        setBaseSeconds(baseSeconds + elapsed);
-      }
+      setBaseSeconds(mode === "pomodoro" ? Math.max(0, baseSeconds - elapsed) : baseSeconds + elapsed);
     }
-    setRunning(false);
-    setStartedAt(null);
+    setRunning(false); setStartedAt(null);
   };
-
-  const resetTimer = () => {
-    setRunning(false);
-    setStartedAt(null);
-    const val = mode === "pomodoro" ? pomodoroTime * 60 : 0;
-    setBaseSeconds(val);
-    setDisplaySeconds(val);
-  };
-
-  const switchMode = (newMode: "pomodoro" | "stopwatch") => {
-    setRunning(false);
-    setStartedAt(null);
-    setMode(newMode);
-    const val = newMode === "pomodoro" ? pomodoroTime * 60 : 0;
-    setBaseSeconds(val);
-    setDisplaySeconds(val);
-  };
-
-  const selectPomodoro = (m: number) => {
-    setPomodoroTime(m);
-    setRunning(false);
-    setStartedAt(null);
-    setBaseSeconds(m * 60);
-    setDisplaySeconds(m * 60);
-  };
-
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-  };
-
+  const resetTimer = () => { setRunning(false); setStartedAt(null); const val = mode === "pomodoro" ? pomodoroTime * 60 : 0; setBaseSeconds(val); setDisplaySeconds(val); };
+  const switchMode = (m: "pomodoro" | "stopwatch") => { setRunning(false); setStartedAt(null); setMode(m); const val = m === "pomodoro" ? pomodoroTime * 60 : 0; setBaseSeconds(val); setDisplaySeconds(val); };
+  const selectPomodoro = (m: number) => { setPomodoroTime(m); setRunning(false); setStartedAt(null); setBaseSeconds(m * 60); setDisplaySeconds(m * 60); };
+  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   const progress = mode === "pomodoro" ? ((pomodoroTime * 60 - displaySeconds) / (pomodoroTime * 60)) * 100 : 0;
 
   return (
     <div className="flex flex-col items-center space-y-6 py-8">
       <div className="flex gap-1 rounded-lg border border-border p-1">
-        <button onClick={() => switchMode("pomodoro")}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium ${mode === "pomodoro" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
-          Pomodoro
-        </button>
-        <button onClick={() => switchMode("stopwatch")}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium ${mode === "stopwatch" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
-          Stopwatch
-        </button>
+        <button onClick={() => switchMode("pomodoro")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${mode === "pomodoro" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Pomodoro</button>
+        <button onClick={() => switchMode("stopwatch")} className={`rounded-md px-3 py-1.5 text-xs font-medium ${mode === "stopwatch" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Stopwatch</button>
       </div>
-
       {mode === "pomodoro" && (
         <div className="flex items-center gap-2">
           {[15, 25, 45, 60].map((m) => (
-            <button key={m} onClick={() => selectPomodoro(m)}
-              className={`rounded-full px-3 py-1 text-xs ${pomodoroTime === m ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}>
-              {m}m
-            </button>
+            <button key={m} onClick={() => selectPomodoro(m)} className={`rounded-full px-3 py-1 text-xs ${pomodoroTime === m ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}>{m}m</button>
           ))}
         </div>
       )}
-
       <div className="relative flex h-48 w-48 items-center justify-center">
         {mode === "pomodoro" && (
           <svg className="absolute inset-0" viewBox="0 0 100 100">
@@ -844,17 +884,13 @@ const StudyTimerTab = () => {
         )}
         <span className="font-mono text-4xl font-bold text-foreground">{formatTime(displaySeconds)}</span>
       </div>
-
       <div className="flex items-center gap-3">
         <Button variant="outline" size="icon" onClick={resetTimer}><RotateCcw className="h-4 w-4" /></Button>
         <Button size="lg" onClick={running ? pauseTimer : startTimer} className="gap-2 px-8">
           {running ? <><Pause className="h-4 w-4" /> Pause</> : <><Play className="h-4 w-4" /> {displaySeconds === 0 && mode === "pomodoro" ? "Start" : "Resume"}</>}
         </Button>
       </div>
-
-      {running && (
-        <p className="text-xs text-muted-foreground animate-pulse">⏱️ Timer runs even when you switch tabs</p>
-      )}
+      {running && <p className="text-xs text-muted-foreground animate-pulse">⏱️ Timer runs even when you switch tabs</p>}
     </div>
   );
 };
@@ -866,5 +902,8 @@ const EmptyState = ({ emoji, text }: { emoji: string; text: string }) => (
     <p className="max-w-xs text-sm text-muted-foreground">{text}</p>
   </div>
 );
+
+// Need React for React.Fragment in GPA guide
+import React from "react";
 
 export default College;

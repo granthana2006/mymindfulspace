@@ -4,6 +4,7 @@ import MoodPicker from "./MoodPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Send, X, Camera, ImagePlus } from "lucide-react";
 
@@ -21,6 +22,11 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [showSaveQuote, setShowSaveQuote] = useState(false);
   const [saveQuote, setSaveQuote] = useState("");
+  const [entryDate, setEntryDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [entryTime, setEntryTime] = useState(
+    // Default to current IST time
+    new Date().toLocaleTimeString("en-IN", { hour12: false, hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })
+  );
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,7 +53,7 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
       title: title.trim(),
       content: content.trim(),
       mood,
-      date: new Date().toISOString().split("T")[0],
+      date: entryDate,
       photo_url: photoUrl,
     });
 
@@ -62,6 +68,18 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
   };
 
   const isValid = title.trim() && content.trim() && mood;
+
+  // Format the IST time display
+  const istDisplay = (() => {
+    try {
+      const [h, m] = entryTime.split(":").map(Number);
+      const period = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2, "0")} ${period} IST`;
+    } catch {
+      return entryTime;
+    }
+  })();
 
   if (showSaveQuote) {
     return (
@@ -80,11 +98,23 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-serif text-2xl font-semibold text-foreground">New Entry</h2>
-          <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
+          <p className="text-sm text-muted-foreground">{istDisplay}</p>
         </div>
         <button type="button" onClick={onCancel} className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
+      </div>
+
+      {/* Date & Time pickers */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Date</Label>
+          <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
+        </div>
+        <div>
+          <Label>Time (IST)</Label>
+          <Input type="time" value={entryTime} onChange={(e) => setEntryTime(e.target.value)} />
+        </div>
       </div>
 
       <div>
@@ -97,7 +127,7 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
       </div>
 
       <div>
-        <Textarea placeholder="Let your thoughts flow freely... What's on your mind tonight?" value={content} onChange={(e) => setContent(e.target.value)} className="min-h-[200px] resize-none border-border/50 bg-card/50 font-serif text-base leading-relaxed placeholder:text-muted" />
+        <Textarea placeholder="Let your thoughts flow freely... What's on your mind?" value={content} onChange={(e) => setContent(e.target.value)} className="min-h-[200px] resize-none border-border/50 bg-card/50 font-serif text-base leading-relaxed placeholder:text-muted" />
       </div>
 
       {/* Photo upload */}
