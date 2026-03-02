@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
@@ -13,6 +13,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   if (loading) {
@@ -39,9 +40,26 @@ const Auth = () => {
       } else {
         const { error } = await signIn(email, password);
         if (error) {
-          toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+          // Provide user-friendly error messages
+          let message = error.message;
+          if (message.includes("Invalid login credentials")) {
+            message = "Incorrect email or password. Please try again.";
+          } else if (message.includes("Email not confirmed")) {
+            message = "Please check your inbox and confirm your email before signing in.";
+          } else if (message.includes("fetch") || message.includes("network") || message.includes("Failed to fetch")) {
+            message = "Network error — please check your internet connection and try again.";
+          }
+          toast({ title: "Sign in failed", description: message, variant: "destructive" });
         }
       }
+    } catch (err: any) {
+      toast({
+        title: "Something went wrong",
+        description: err?.message?.includes("fetch")
+          ? "Could not connect to the server. Please check your internet and try again."
+          : "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -72,7 +90,25 @@ const Auth = () => {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Password</label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <Button type="submit" disabled={submitting} className="w-full">
               {submitting ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}

@@ -56,6 +56,33 @@ const TaskCompletionChart = ({ tasks, currentDate }: TaskCompletionChartProps) =
     { name: "Remaining", value: Math.max(0, todayTotal - todayCompleted) },
   ];
 
+  // Priority pie chart data
+  const priorityData = useMemo(() => {
+    const high = tasks.filter((t) => t.priority === "high").length;
+    const medium = tasks.filter((t) => t.priority === "medium").length;
+    const low = tasks.filter((t) => t.priority === "low").length;
+    return [
+      { name: "High", value: high, color: "hsl(0, 72%, 50%)" },
+      { name: "Medium", value: medium, color: "hsl(220, 70%, 55%)" },
+      { name: "Low", value: low, color: "hsl(270, 60%, 60%)" },
+    ].filter((d) => d.value > 0);
+  }, [tasks]);
+
+  // Category pie chart data
+  const categoryData = useMemo(() => {
+    const cats: Record<string, number> = {};
+    tasks.forEach((t) => {
+      const cat = t.category || "task";
+      cats[cat] = (cats[cat] || 0) + 1;
+    });
+    const catColors = ["hsl(243, 75%, 58%)", "hsl(142, 71%, 45%)", "hsl(38, 92%, 50%)", "hsl(199, 89%, 48%)", "hsl(330, 65%, 55%)", "hsl(160, 60%, 45%)"];
+    return Object.entries(cats).map(([name, value], i) => ({
+      name,
+      value,
+      color: catColors[i % catColors.length],
+    }));
+  }, [tasks]);
+
   const getMessage = () => {
     if (todayTotal === 0) return "No tasks today — enjoy the free time! 🏖️";
     if (todayPercent === 100) return "All done! You're on fire! 🔥";
@@ -109,6 +136,87 @@ const TaskCompletionChart = ({ tasks, currentDate }: TaskCompletionChartProps) =
           </div>
         </div>
       </div>
+
+      {/* Priority & Category Pie Charts */}
+      {tasks.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Priority Breakdown */}
+          <div className="rounded-xl border border-border/50 bg-card/80 p-4 backdrop-blur-sm">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">By Priority</h3>
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width={120} height={120}>
+                <PieChart>
+                  <Pie data={priorityData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" stroke="none" paddingAngle={3}>
+                    {priorityData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload?.[0]) {
+                        return (
+                          <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
+                            <p className="font-medium text-foreground">{payload[0].name}: {payload[0].value}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-2">
+                {priorityData.map((d) => (
+                  <div key={d.name} className="flex items-center gap-2 text-xs">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="text-foreground">{d.name}</span>
+                    <span className="text-muted-foreground">({d.value})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Category Breakdown */}
+          {categoryData.length > 0 && (
+            <div className="rounded-xl border border-border/50 bg-card/80 p-4 backdrop-blur-sm">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">By Category</h3>
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width={120} height={120}>
+                  <PieChart>
+                    <Pie data={categoryData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" stroke="none" paddingAngle={3}>
+                      {categoryData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload?.[0]) {
+                          return (
+                            <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-md">
+                              <p className="font-medium text-foreground">{payload[0].name}: {payload[0].value}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-col gap-2">
+                  {categoryData.map((d) => (
+                    <div key={d.name} className="flex items-center gap-2 text-xs">
+                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                      <span className="capitalize text-foreground">{d.name}</span>
+                      <span className="text-muted-foreground">({d.value})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Weekly trend area chart */}
       <div className="rounded-xl border border-border/50 bg-card/80 p-4 backdrop-blur-sm">

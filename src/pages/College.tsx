@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Assignment, ClassSchedule, Exam, StudyNote, GpaRecord,
@@ -902,8 +902,5 @@ const EmptyState = ({ emoji, text }: { emoji: string; text: string }) => (
     <p className="max-w-xs text-sm text-muted-foreground">{text}</p>
   </div>
 );
-
-// Need React for React.Fragment in GPA guide
-import React from "react";
 
 export default College;
