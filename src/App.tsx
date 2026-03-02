@@ -12,6 +12,10 @@ import Planner from "./pages/Planner";
 import Books from "./pages/Books";
 import Movies from "./pages/Movies";
 import College from "./pages/College";
+import Finance from "./pages/Finance";
+import Fitness from "./pages/Fitness";
+import Habits from "./pages/Habits";
+import Goals from "./pages/Goals";
 import PersonalSpace from "./pages/PersonalSpace";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -50,6 +54,10 @@ const App = () => (
               <Route path="/books" element={<ProtectedRoute><Books /></ProtectedRoute>} />
               <Route path="/movies" element={<ProtectedRoute><Movies /></ProtectedRoute>} />
               <Route path="/college" element={<ProtectedRoute><College /></ProtectedRoute>} />
+              <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+              <Route path="/fitness" element={<ProtectedRoute><Fitness /></ProtectedRoute>} />
+              <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
+              <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
               <Route path="/personal" element={<ProtectedRoute><PersonalSpace /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

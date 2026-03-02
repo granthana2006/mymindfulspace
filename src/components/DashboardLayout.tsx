@@ -14,6 +14,10 @@ import {
   Moon,
   Sun,
   X,
+  Wallet,
+  Dumbbell,
+  Target,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ClosingAffirmation from "@/components/ClosingAffirmation";
@@ -31,6 +35,10 @@ const navItems: NavItem[] = [
   { label: "Books", path: "/books", icon: <BookOpen className="h-5 w-5" /> },
   { label: "Movies & Series", path: "/movies", icon: <Film className="h-5 w-5" /> },
   { label: "College", path: "/college", icon: <GraduationCap className="h-5 w-5" /> },
+  { label: "Finance", path: "/finance", icon: <Wallet className="h-5 w-5" /> },
+  { label: "Fitness", path: "/fitness", icon: <Dumbbell className="h-5 w-5" /> },
+  { label: "Habits", path: "/habits", icon: <Target className="h-5 w-5" /> },
+  { label: "Goals", path: "/goals", icon: <Trophy className="h-5 w-5" /> },
   { label: "Personal Space", path: "/personal", icon: <Heart className="h-5 w-5" /> },
 ];
 

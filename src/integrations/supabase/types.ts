@@ -98,6 +98,36 @@ export type Database = {
         }
         Relationships: []
       }
+      budgets: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          month: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          id?: string
+          month: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          month?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       class_schedule: {
         Row: {
           color: string | null
@@ -185,6 +215,48 @@ export type Database = {
         }
         Relationships: []
       }
+      goals: {
+        Row: {
+          category: string
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          progress: number | null
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          progress?: number | null
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          progress?: number | null
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gpa_records: {
         Row: {
           created_at: string
@@ -213,6 +285,77 @@ export type Database = {
           id?: string
           semester?: string
           subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habit_logs: {
+        Row: {
+          count: number | null
+          created_at: string
+          date: string
+          habit_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          count?: number | null
+          created_at?: string
+          date?: string
+          habit_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          count?: number | null
+          created_at?: string
+          date?: string
+          habit_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          color: string | null
+          created_at: string
+          frequency: string
+          icon: string | null
+          id: string
+          name: string
+          target_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          frequency?: string
+          icon?: string | null
+          id?: string
+          name: string
+          target_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          frequency?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          target_count?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -253,6 +396,89 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      meals: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          created_at: string
+          date: string
+          fat: number | null
+          id: string
+          meal_type: string
+          name: string
+          protein: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          date?: string
+          fat?: number | null
+          id?: string
+          meal_type?: string
+          name: string
+          protein?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          date?: string
+          fat?: number | null
+          id?: string
+          meal_type?: string
+          name?: string
+          protein?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      milestones: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          due_date: string | null
+          goal_id: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          due_date?: string | null
+          goal_id: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          due_date?: string | null
+          goal_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       movies: {
         Row: {
@@ -405,6 +631,81 @@ export type Database = {
           id?: string
           priority?: string
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workouts: {
+        Row: {
+          calories_burned: number | null
+          created_at: string
+          date: string
+          duration_mins: number | null
+          id: string
+          name: string
+          notes: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          duration_mins?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          duration_mins?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          type?: string
           updated_at?: string
           user_id?: string
         }
