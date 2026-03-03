@@ -89,6 +89,27 @@ export async function uploadJournalPhoto(file: File): Promise<string | null> {
   return urlData.publicUrl;
 }
 
+export async function updateEntry(id: string, entry: { title: string; content: string; mood: Mood; date: string; photo_url?: string }): Promise<JournalEntry | null> {
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .update({
+      title: entry.title,
+      content: entry.content,
+      mood: entry.mood,
+      date: entry.date,
+      photo_url: entry.photo_url || "",
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating entry:", error);
+    return null;
+  }
+  return data as JournalEntry;
+}
+
 export async function deleteEntry(id: string): Promise<void> {
   const { error } = await supabase.from("journal_entries").delete().eq("id", id);
   if (error) console.error("Error deleting entry:", error);

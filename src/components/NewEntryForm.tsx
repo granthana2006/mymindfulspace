@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mood, saveEntry, uploadJournalPhoto, getHappySaveQuote } from "@/lib/journal-store";
+import { Mood, saveEntry, updateEntry, uploadJournalPhoto, getHappySaveQuote, JournalEntry } from "@/lib/journal-store";
 import MoodPicker from "./MoodPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,20 +11,20 @@ import { Send, X, Camera, ImagePlus } from "lucide-react";
 interface NewEntryFormProps {
   onSave: () => void;
   onCancel: () => void;
+  editEntry?: JournalEntry | null;
 }
 
-const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [mood, setMood] = useState<Mood | null>(null);
+const NewEntryForm = ({ onSave, onCancel, editEntry }: NewEntryFormProps) => {
+  const [title, setTitle] = useState(editEntry?.title || "");
+  const [content, setContent] = useState(editEntry?.content || "");
+  const [mood, setMood] = useState<Mood | null>((editEntry?.mood as Mood) || null);
   const [saving, setSaving] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(editEntry?.photo_url || null);
   const [showSaveQuote, setShowSaveQuote] = useState(false);
   const [saveQuote, setSaveQuote] = useState("");
-  const [entryDate, setEntryDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [entryDate, setEntryDate] = useState(editEntry?.date || format(new Date(), "yyyy-MM-dd"));
   const [entryTime, setEntryTime] = useState(
-    // Default to current IST time
     new Date().toLocaleTimeString("en-IN", { hour12: false, hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })
   );
 
@@ -43,19 +43,29 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
     if (!title.trim() || !content.trim() || !mood) return;
 
     setSaving(true);
-    let photoUrl = "";
+    let photoUrl = editEntry?.photo_url || "";
     if (photo) {
       const url = await uploadJournalPhoto(photo);
       if (url) photoUrl = url;
     }
 
-    await saveEntry({
-      title: title.trim(),
-      content: content.trim(),
-      mood,
-      date: entryDate,
-      photo_url: photoUrl,
-    });
+    if (editEntry) {
+      await updateEntry(editEntry.id, {
+        title: title.trim(),
+        content: content.trim(),
+        mood,
+        date: entryDate,
+        photo_url: photoUrl,
+      });
+    } else {
+      await saveEntry({
+        title: title.trim(),
+        content: content.trim(),
+        mood,
+        date: entryDate,
+        photo_url: photoUrl,
+      });
+    }
 
     setSaving(false);
     setSaveQuote(getHappySaveQuote());
@@ -69,7 +79,6 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
 
   const isValid = title.trim() && content.trim() && mood;
 
-  // Format the IST time display
   const istDisplay = (() => {
     try {
       const [h, m] = entryTime.split(":").map(Number);
@@ -97,7 +106,7 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
     <form onSubmit={handleSubmit} className="animate-fade-in space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-2xl font-semibold text-foreground">New Entry</h2>
+          <h2 className="font-serif text-2xl font-semibold text-foreground">{editEntry ? "Edit Entry" : "New Entry"}</h2>
           <p className="text-sm text-muted-foreground">{istDisplay}</p>
         </div>
         <button type="button" onClick={onCancel} className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
@@ -161,7 +170,7 @@ const NewEntryForm = ({ onSave, onCancel }: NewEntryFormProps) => {
 
       <Button type="submit" disabled={!isValid || saving} className="w-full gap-2 shadow-[var(--shadow-glow)] transition-all duration-300">
         <Send className="h-4 w-4" />
-        {saving ? "Saving..." : "Save Entry"}
+        {saving ? "Saving..." : editEntry ? "Update Entry" : "Save Entry"}
       </Button>
     </form>
   );

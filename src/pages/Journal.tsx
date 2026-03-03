@@ -8,7 +8,7 @@ import MoodChart from "@/components/MoodChart";
 import PositiveQuote from "@/components/PositiveQuote";
 import JournalCalendar from "@/components/JournalCalendar";
 
-type View = "list" | "new" | "detail" | "chart" | "calendar";
+type View = "list" | "new" | "detail" | "chart" | "calendar" | "edit";
 
 const Journal = () => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -37,6 +37,11 @@ const Journal = () => {
     setView("detail");
   };
 
+  const handleEdit = (entry: JournalEntry) => {
+    setSelectedEntry(entry);
+    setView("edit");
+  };
+
   return (
     <div className="animate-fade-in space-y-6">
       <div>
@@ -56,10 +61,25 @@ const Journal = () => {
         />
       )}
 
+      {view === "edit" && selectedEntry && (
+        <NewEntryForm
+          editEntry={selectedEntry}
+          onSave={async () => {
+            await loadEntries();
+            setSelectedEntry(null);
+            setView("list");
+          }}
+          onCancel={() => {
+            setView("detail");
+          }}
+        />
+      )}
+
       {view === "detail" && selectedEntry && (
         <EntryDetail
           entry={selectedEntry}
           onBack={() => { setSelectedEntry(null); setView("list"); }}
+          onEdit={handleEdit}
         />
       )}
 
