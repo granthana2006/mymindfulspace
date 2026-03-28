@@ -55,9 +55,9 @@ const App = () => (
               <Route path="/movies" element={<ProtectedRoute><Movies /></ProtectedRoute>} />
               <Route path="/college" element={<ProtectedRoute><College /></ProtectedRoute>} />
               <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
-              <Route path="/fitness" element={<ProtectedRoute><Fitness /></ProtectedRoute>} />
-              <Route path="/habits" element={<ProtectedRoute><Habits /></ProtectedRoute>} />
-              <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+              <Route path="/fitness" element={<Navigate to="/personal" replace />} />
+              <Route path="/habits" element={<Navigate to="/personal" replace />} />
+              <Route path="/goals" element={<Navigate to="/personal" replace />} />
               <Route path="/personal" element={<ProtectedRoute><PersonalSpace /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

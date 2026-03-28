@@ -30,10 +30,7 @@ const corners = [
   { label: "Movies & Series", description: "Watchlist & reviews", path: "/movies", icon: <Film className="h-6 w-6" />, color: "bg-accent text-accent-foreground" },
   { label: "College", description: "Academics & schedule", path: "/college", icon: <GraduationCap className="h-6 w-6" />, color: "bg-primary/10 text-primary" },
   { label: "Finance", description: "Income & expenses", path: "/finance", icon: <Wallet className="h-6 w-6" />, color: "bg-accent text-accent-foreground" },
-  { label: "Fitness", description: "Workouts & nutrition", path: "/fitness", icon: <Dumbbell className="h-6 w-6" />, color: "bg-primary/10 text-primary" },
-  { label: "Habits", description: "Daily streaks", path: "/habits", icon: <Target className="h-6 w-6" />, color: "bg-accent text-accent-foreground" },
-  { label: "Goals", description: "Vision & milestones", path: "/goals", icon: <Trophy className="h-6 w-6" />, color: "bg-primary/10 text-primary" },
-  { label: "Personal Space", description: "Wellness tracking", path: "/personal", icon: <Heart className="h-6 w-6" />, color: "bg-accent text-accent-foreground" },
+  { label: "Personal Space", description: "Wellness · Fitness · Habits · Goals", path: "/personal", icon: <Heart className="h-6 w-6" />, color: "bg-primary/10 text-primary" },
 ];
 
 const Dashboard = () => {
