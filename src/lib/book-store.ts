@@ -67,6 +67,6 @@ export async function uploadBookPhoto(userId: string, file: File): Promise<strin
   const path = `${userId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("book-photos").upload(path, file);
   if (error) throw error;
-  const { data } = supabase.storage.from("book-photos").getPublicUrl(path);
-  return data.publicUrl;
+  // Store the object path; consumers turn it into a short-lived signed URL on read.
+  return path;
 }
