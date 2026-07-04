@@ -180,11 +180,7 @@ export async function uploadStudyFile(file: File): Promise<string | null> {
     return null;
   }
 
-  const { data: urlData } = supabase.storage
-    .from("study-files")
-    .getPublicUrl(path);
-
-  return urlData.publicUrl;
+  return path;
 }
 
 // GPA Records
