@@ -85,11 +85,7 @@ export async function uploadJournalPhoto(file: File): Promise<string | null> {
     return null;
   }
 
-  const { data: urlData } = supabase.storage
-    .from("journal-photos")
-    .getPublicUrl(path);
-
-  return urlData.publicUrl;
+  return path;
 }
 
 export async function updateEntry(id: string, entry: { title: string; content: string; mood: Mood; date: string; photo_url?: string }): Promise<JournalEntry | null> {
