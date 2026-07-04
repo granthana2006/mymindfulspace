@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { signMany } from "./storage-utils";
 
 export interface Assignment {
   id: string;
@@ -145,7 +146,7 @@ export async function getStudyNotes(userId: string): Promise<StudyNote[]> {
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as StudyNote[];
+  return signMany((data ?? []) as unknown as StudyNote[], "study-files", "file_url");
 }
 
 export async function createStudyNote(n: Omit<StudyNote, "id" | "created_at" | "updated_at">): Promise<void> {
@@ -179,11 +180,7 @@ export async function uploadStudyFile(file: File): Promise<string | null> {
     return null;
   }
 
-  const { data: urlData } = supabase.storage
-    .from("study-files")
-    .getPublicUrl(path);
-
-  return urlData.publicUrl;
+  return path;
 }
 
 // GPA Records

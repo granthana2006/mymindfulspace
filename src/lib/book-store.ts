@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { signMany, signStorageUrl } from "./storage-utils";
 
 export interface Book {
   id: string;
@@ -38,13 +39,16 @@ export async function getBooks(userId: string): Promise<Book[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as unknown as Book[]) ?? [];
+  const books = (data as unknown as Book[]) ?? [];
+  return signMany(books, "book-photos", "photo_url");
 }
 
 export async function createBook(book: Omit<Book, "id" | "created_at" | "updated_at">): Promise<Book> {
   const { data, error } = await supabase.from("books").insert(book).select().single();
   if (error) throw error;
-  return data as unknown as Book;
+  const created = data as unknown as Book;
+  if (created.photo_url) created.photo_url = await signStorageUrl("book-photos", created.photo_url);
+  return created;
 }
 
 export async function updateBook(id: string, updates: Partial<Book>): Promise<Book> {
@@ -63,6 +67,6 @@ export async function uploadBookPhoto(userId: string, file: File): Promise<strin
   const path = `${userId}/${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("book-photos").upload(path, file);
   if (error) throw error;
-  const { data } = supabase.storage.from("book-photos").getPublicUrl(path);
-  return data.publicUrl;
+  // Store the object path; consumers turn it into a short-lived signed URL on read.
+  return path;
 }

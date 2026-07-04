@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { signMany, signStorageUrl } from "./storage-utils";
 
 export type Mood = "peaceful" | "happy" | "reflective" | "grateful" | "melancholy" | "energetic";
 
@@ -39,7 +40,7 @@ export async function getEntries(): Promise<JournalEntry[]> {
     console.error("Error fetching entries:", error);
     return [];
   }
-  return (data || []) as JournalEntry[];
+  return signMany((data || []) as JournalEntry[], "journal-photos", "photo_url");
 }
 
 export async function saveEntry(entry: { title: string; content: string; mood: Mood; date: string; photo_url?: string }): Promise<JournalEntry | null> {
@@ -63,7 +64,9 @@ export async function saveEntry(entry: { title: string; content: string; mood: M
     console.error("Error saving entry:", error);
     return null;
   }
-  return data as JournalEntry;
+  const entryRow = data as JournalEntry;
+  if (entryRow.photo_url) entryRow.photo_url = await signStorageUrl("journal-photos", entryRow.photo_url);
+  return entryRow;
 }
 
 export async function uploadJournalPhoto(file: File): Promise<string | null> {
@@ -82,11 +85,7 @@ export async function uploadJournalPhoto(file: File): Promise<string | null> {
     return null;
   }
 
-  const { data: urlData } = supabase.storage
-    .from("journal-photos")
-    .getPublicUrl(path);
-
-  return urlData.publicUrl;
+  return path;
 }
 
 export async function updateEntry(id: string, entry: { title: string; content: string; mood: Mood; date: string; photo_url?: string }): Promise<JournalEntry | null> {
@@ -107,7 +106,9 @@ export async function updateEntry(id: string, entry: { title: string; content: s
     console.error("Error updating entry:", error);
     return null;
   }
-  return data as JournalEntry;
+  const row = data as JournalEntry;
+  if (row.photo_url) row.photo_url = await signStorageUrl("journal-photos", row.photo_url);
+  return row;
 }
 
 export async function deleteEntry(id: string): Promise<void> {
