@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { signMany, signStorageUrl } from "./storage-utils";
 
 export interface Book {
   id: string;
