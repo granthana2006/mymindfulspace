@@ -106,7 +106,9 @@ export async function updateEntry(id: string, entry: { title: string; content: s
     console.error("Error updating entry:", error);
     return null;
   }
-  return data as JournalEntry;
+  const row = data as JournalEntry;
+  if (row.photo_url) row.photo_url = await signStorageUrl("journal-photos", row.photo_url);
+  return row;
 }
 
 export async function deleteEntry(id: string): Promise<void> {
