@@ -64,7 +64,9 @@ export async function saveEntry(entry: { title: string; content: string; mood: M
     console.error("Error saving entry:", error);
     return null;
   }
-  return data as JournalEntry;
+  const entryRow = data as JournalEntry;
+  if (entryRow.photo_url) entryRow.photo_url = await signStorageUrl("journal-photos", entryRow.photo_url);
+  return entryRow;
 }
 
 export async function uploadJournalPhoto(file: File): Promise<string | null> {
