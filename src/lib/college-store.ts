@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { signMany } from "./storage-utils";
 
 export interface Assignment {
   id: string;
