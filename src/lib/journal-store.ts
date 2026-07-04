@@ -40,7 +40,7 @@ export async function getEntries(): Promise<JournalEntry[]> {
     console.error("Error fetching entries:", error);
     return [];
   }
-  return (data || []) as JournalEntry[];
+  return signMany((data || []) as JournalEntry[], "journal-photos", "photo_url");
 }
 
 export async function saveEntry(entry: { title: string; content: string; mood: Mood; date: string; photo_url?: string }): Promise<JournalEntry | null> {
